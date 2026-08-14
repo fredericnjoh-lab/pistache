@@ -139,7 +139,7 @@ const FoxCurve = () => {
 
 /* ── Données ───────────────────────────────── */
 /* Noms des totems — fil conducteur gourmand, cohérent avec « Pistache ». */
-const TOTEM = { squirrel: "Cachou", fox: "Safran", owl: "Sésame" };
+const TOTEM = { squirrel: "Pistache", fox: "Safran", owl: "Sésame" };
 
 const worldOf = (age) => {
   if (age <= 5) return { animal: "🐿️", totemName: TOTEM.squirrel, world: "Le monde de l'attente", color: T.honey, colorSoft: T.honeySoft,
