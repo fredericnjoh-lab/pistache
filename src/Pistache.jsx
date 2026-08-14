@@ -138,16 +138,19 @@ const FoxCurve = () => {
 };
 
 /* ── Données ───────────────────────────────── */
+/* Noms des totems — fil conducteur gourmand, cohérent avec « Pistache ». */
+const TOTEM = { squirrel: "Cachou", fox: "Safran", owl: "Sésame" };
+
 const worldOf = (age) => {
-  if (age <= 5) return { animal: "🐿️", world: "Le monde de l'attente", color: T.honey, colorSoft: T.honeySoft,
+  if (age <= 5) return { animal: "🐿️", totemName: TOTEM.squirrel, world: "Le monde de l'attente", color: T.honey, colorSoft: T.honeySoft,
     firstMission: "La boutique du salon",
-    promise: "L'écureuil apprend à attendre et à échanger — avec de vraies pièces, jamais d'écran." };
-  if (age <= 8) return { animal: "🦊", world: "Le monde des trois bocaux", color: T.coral, colorSoft: T.coralSoft,
+    promise: `${TOTEM.squirrel} l'écureuil apprend à attendre et à échanger — avec de vraies pièces, jamais d'écran.` };
+  if (age <= 8) return { animal: "🦊", totemName: TOTEM.fox, world: "Le monde des trois bocaux", color: T.coral, colorSoft: T.coralSoft,
     firstMission: "La paie du dimanche",
-    promise: "Le renard répartit son argent de poche : dépenser, épargner, donner." };
-  return { animal: "🦉", world: "Le monde des choix", color: T.sky, colorSoft: T.skySoft,
+    promise: `${TOTEM.fox} le renard répartit son argent de poche : dépenser, épargner, donner.` };
+  return { animal: "🦉", totemName: TOTEM.owl, world: "Le monde des choix", color: T.sky, colorSoft: T.skySoft,
     firstMission: "Le simulateur « Et si ? »",
-    promise: "Le hibou fait ses premiers arbitrages : budget réel, projets, patience qui rapporte." };
+    promise: `${TOTEM.owl} le hibou fait ses premiers arbitrages : budget réel, projets, patience qui rapporte.` };
 };
 
 const initialKids = [
@@ -255,7 +258,8 @@ const Onboarding = ({ onDone, onCancel }) => {
             Le totem de {name.trim()} est…
           </div>
           <AnimalBadge animal={w.animal} size={92} ring={w.color} wiggle />
-          <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 24, color: T.ink }}>{w.world}</div>
+          <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 30, color: w.color }}>{w.totemName}</div>
+          <div style={{ fontFamily: fontHead, fontWeight: 500, fontSize: 17, color: T.ink }}>{w.world}</div>
           <p style={{ fontFamily: fontBody, fontSize: 14.5, color: T.inkSoft, margin: 0, maxWidth: 380, lineHeight: 1.6 }}>{w.promise}</p>
           <div style={{ background: w.colorSoft, borderRadius: 12, padding: "12px 18px", fontFamily: fontBody, fontSize: 14, color: T.ink }}>
             Première mission dimanche : <b>{w.firstMission}</b>
@@ -285,7 +289,9 @@ const Home = ({ kids, startRitual, startSimulator, onAddKid }) => (
           <AnimalBadge animal={k.animal} ring={k.color} />
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 17 }}>{k.name} · {k.age} ans</div>
-            <div style={{ fontFamily: fontBody, fontSize: 13, fontWeight: 700, color: T.inkSoft }}>{k.world}</div>
+            <div style={{ fontFamily: fontBody, fontSize: 13, fontWeight: 700, color: T.inkSoft }}>
+              {k.totemName ? `${k.totemName} · ${k.world}` : k.world}
+            </div>
           </div>
           <Tag color={k.color} bg={k.colorSoft}>à faire</Tag>
         </div>
@@ -332,7 +338,7 @@ const Ritual = ({ kid, onDone, onBack }) => {
         <AnimalBadge animal={kid.animal} size={70} ring={kid.color} wiggle />
         <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 22 }}>Bravo à vous deux !</div>
         <p style={{ fontFamily: fontBody, fontSize: 14.5, color: T.inkSoft, margin: 0, maxWidth: 380, lineHeight: 1.6 }}>
-          La phrase du jour de {kid.name} est gardée dans l'album. L'écureuil retourne faire ses réserves — rendez-vous dimanche prochain.
+          La phrase du jour de {kid.name} est gardée dans l'album. {kid.totemName} retourne faire ses réserves — rendez-vous dimanche prochain.
         </p>
         <div style={{ background: T.honeySoft, borderRadius: 12, padding: "12px 16px", fontFamily: fontBody, fontSize: 13.5, fontStyle: "italic" }}>
           « Doudou, c'est pas assez de sous pour le livre, reviens demain ! »
@@ -394,7 +400,7 @@ const Simulator = ({ onBack }) => {
   const owlX = 40 + pct * (W - 110);
 
   const mood =
-    weekly <= 2 ? { txt: "À ce rythme, le hibou somnole… c'est loin. Mais c'est SON choix — et ça se respecte.", bg: T.skySoft } :
+    weekly <= 2 ? { txt: `À ce rythme, ${TOTEM.owl} somnole… c'est loin. Mais c'est SON choix — et ça se respecte.`, bg: T.skySoft } :
     weekly <= 5 ? { txt: "Bon rythme de croisière : l'effort reste indolore et le but se rapproche chaque dimanche.", bg: T.greenSoft } :
     { txt: "Rythme d'aigle ! Attention : un objectif trop dur à tenir s'abandonne. Mieux vaut 4 € tenus que 8 € rêvés.", bg: T.honeySoft };
 
@@ -407,7 +413,7 @@ const Simulator = ({ onBack }) => {
         </button>
         <div>
           <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 17 }}>Le simulateur « Et si ? »</div>
-          <div style={{ fontFamily: fontBody, fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>avec Nina · 10 ans · 🦉 le monde des choix</div>
+          <div style={{ fontFamily: fontBody, fontSize: 12.5, fontWeight: 700, color: T.inkSoft }}>avec Nina · 10 ans · 🦉 {TOTEM.owl}, le monde des choix</div>
         </div>
       </div>
 
@@ -457,7 +463,7 @@ const Simulator = ({ onBack }) => {
         </div>
 
         <div style={{ background: mood.bg, borderRadius: 12, padding: "12px 15px", fontFamily: fontBody, fontSize: 13.5, lineHeight: 1.55 }}>
-          <b style={{ color: T.sky }}>Le hibou observe :</b> {mood.txt}
+          <b style={{ color: T.sky }}>{TOTEM.owl} observe :</b> {mood.txt}
         </div>
 
         <div style={{ background: T.paper, border: `1.5px dashed ${T.line}`, borderRadius: 12, padding: "12px 15px", fontFamily: fontBody, fontSize: 13, color: T.inkSoft, lineHeight: 1.55 }}>
@@ -508,7 +514,7 @@ const Jars = () => {
             </div>
           </Card>
           <Card style={{ padding: 20, display: "grid", gap: 10 }}>
-            <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 16.5 }}>Le renard grimpe — épargne sur 7 semaines</div>
+            <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 16.5 }}>{TOTEM.fox} grimpe — épargne sur 7 semaines</div>
             <FoxCurve />
             <p style={{ fontFamily: fontBody, fontSize: 13, color: T.inkSoft, margin: 0, lineHeight: 1.5 }}>
               Sa première courbe de patrimoine. Elle la connaît par cœur — c'est elle qui demande à la voir.
@@ -562,7 +568,7 @@ const Jars = () => {
 
       {who === "nina" && (
         <Card style={{ padding: 20, display: "grid", gap: 14 }} className="pop-in">
-          <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 16.5 }}>Le vol du hibou de Nina</div>
+          <div style={{ fontFamily: fontHead, fontWeight: 600, fontSize: 16.5 }}>Le vol de {TOTEM.owl}, le hibou de Nina</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div style={{ background: T.skySoft, borderRadius: 12, padding: "13px 15px", display: "grid", gap: 3 }}>
               <span style={{ fontFamily: fontBody, fontSize: 12, fontWeight: 800, color: T.inkSoft }}>Épargné pour la console</span>
