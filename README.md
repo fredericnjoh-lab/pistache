@@ -26,6 +26,18 @@ npm run build
 npm run preview
 ```
 
+## Déploiement (GitHub Pages)
+
+Un workflow prêt à l'emploi est fourni dans [`deploy/github-pages.yml`](deploy/github-pages.yml).
+
+Pour l'activer :
+
+1. Déplacer le fichier vers `.github/workflows/deploy.yml` (nécessite un token avec le scope `workflow`, ou le faire via l'interface GitHub).
+2. Dans **Settings → Pages**, sélectionner **GitHub Actions** comme source.
+3. GitHub Pages sur un dépôt **privé** requiert un plan **GitHub Pro / Team / Enterprise**. Sur un compte gratuit, il faut rendre le dépôt public.
+
+La config Vite fixe déjà `base: "/pistache/"` en CI pour que les chemins soient corrects sur Pages.
+
 ## Stack
 
 - React 19
