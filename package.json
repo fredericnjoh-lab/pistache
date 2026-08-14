@@ -1,0 +1,20 @@
+{
+  "name": "pistache",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Pistache — rituels d'éducation financière pour enfants 3-12 ans",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.2",
+    "vite": "^6.3.5"
+  }
+}
