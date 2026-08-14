@@ -26,17 +26,15 @@ npm run build
 npm run preview
 ```
 
-## Déploiement (GitHub Pages)
+## Déploiement
 
-Un workflow prêt à l'emploi est fourni dans [`deploy/github-pages.yml`](deploy/github-pages.yml).
+Le site est en ligne : **https://fredericnjoh-lab.github.io/pistache/**
 
-Pour l'activer :
+Le déploiement est automatique : à chaque push sur `cursor/pistache-v2-abf3`, le workflow
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) build le projet et publie
+`dist/` sur la branche `gh-pages`, servie par GitHub Pages.
 
-1. Déplacer le fichier vers `.github/workflows/deploy.yml` (nécessite un token avec le scope `workflow`, ou le faire via l'interface GitHub).
-2. Dans **Settings → Pages**, sélectionner **GitHub Actions** comme source.
-3. GitHub Pages sur un dépôt **privé** requiert un plan **GitHub Pro / Team / Enterprise**. Sur un compte gratuit, il faut rendre le dépôt public.
-
-La config Vite fixe déjà `base: "/pistache/"` en CI pour que les chemins soient corrects sur Pages.
+La config Vite fixe `base: "/pistache/"` en CI pour que les chemins soient corrects sur Pages.
 
 ## Stack
 
