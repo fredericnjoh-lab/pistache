@@ -1,0 +1,53 @@
+# Workflow de déploiement GitHub Pages — PRÊT À L'EMPLOI
+#
+# Ce fichier n'a pas pu être placé directement dans .github/workflows/
+# car le token utilisé n'avait pas le scope `workflow`.
+#
+# Pour l'activer :
+#   1. Déplace ce fichier vers : .github/workflows/deploy.yml
+#      (nécessite un token avec le scope `workflow`, ou via l'UI GitHub)
+#   2. Dans Settings > Pages, choisis "GitHub Actions" comme source
+#   3. Note : GitHub Pages sur un dépôt PRIVÉ nécessite un plan
+#      GitHub Pro / Team / Enterprise. Sinon, rends le repo public
+#      (on te redemandera confirmation avant de le rendre public).
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [cursor/pistache-v2-abf3]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
