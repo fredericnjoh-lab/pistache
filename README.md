@@ -1,23 +1,28 @@
 # Pistache
 
-Rituels d'éducation financière pour enfants de 3 à 12 ans — 5 minutes par semaine, sans écran pour eux.
+Voice-first language loop for ages **3–6**. No text on the child screen, no menus, no scores.
 
-## Mondes
+She taps one big picture → hears the word (Mum/Dad recording or device voice) → says it back → the app quietly tracks what stuck.
 
-| Âge | Totem | Monde |
-|-----|-------|-------|
-| 3–5 | 🐿️ | L'attente — échange & patience avec de vraies pièces |
-| 6–8 | 🦊 | Les trois bocaux — dépenser, épargner, donner |
-| 9–12 | 🦉 | Les choix — simulateur « Et si ? » & projets |
+**English · Spanish · Mandarin · Japanese** — the same 30 everyday objects, on rotation.
+
+## The daily loop (~11 minutes)
+
+1. **Yesterday’s misses first**
+2. **Words not heard in four days**
+3. **At most two new words per day**
+4. Miss three days in a row → drop it, swap for an easier object in that language
+5. Miss in-session → reappear ~three turns later (no buzzers)
+6. Parents get **four dinner words** with exactly when to say them
 
 ## Lancer en local
 
 ```bash
-npm install
+npm install --ignore-scripts
 npm run dev
 ```
 
-Puis ouvrir l'URL affichée (souvent `http://localhost:5173`).
+Ouvrir l’URL affichée (souvent `http://localhost:5173`). Sur iPad : Safari → Partager → Sur l’écran d’accueil pour un mode plein écran.
 
 ## Build
 
@@ -30,14 +35,11 @@ npm run preview
 
 Le site est en ligne : **https://fredericnjoh-lab.github.io/pistache/**
 
-Le déploiement est automatique : à chaque push sur `cursor/pistache-v2-abf3`, le workflow
-[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) build le projet et publie
-`dist/` sur la branche `gh-pages`, servie par GitHub Pages.
-
-La config Vite fixe `base: "/pistache/"` en CI pour que les chemins soient corrects sur Pages.
+Déploiement automatique via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) sur push vers `cursor/pistache-v2-abf3`.
 
 ## Stack
 
-- React 19
-- Vite 6
-- UI inline (Fredoka + Nunito)
+- React 19 + Vite 6
+- Web Speech API (TTS + recognition when available)
+- localStorage progress + offline service worker
+- Parent voice clips stored on-device

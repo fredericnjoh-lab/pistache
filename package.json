@@ -1,9 +1,9 @@
 {
   "name": "pistache",
   "private": true,
-  "version": "2.0.0",
+  "version": "3.0.0",
   "type": "module",
-  "description": "Pistache — rituels d'éducation financière pour enfants 3-12 ans",
+  "description": "Pistache — voice-first polyglot loop for ages 3–6 (EN / ES / ZH / JA)",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
