@@ -1,0 +1,18 @@
+{
+  "name": "Pistache",
+  "short_name": "Pistache",
+  "description": "Voice-first language loop for ages 3–6 — English, Spanish, Mandarin, Japanese.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#E8F4F0",
+  "theme_color": "#2A9D8F",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
