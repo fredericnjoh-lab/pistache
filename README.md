@@ -1,19 +1,19 @@
 # Pistache
 
-Voice-first language loop for ages **3–6**. No text on the child screen, no menus, no scores.
+Boucle vocale pour **3–6 ans**. Pas de texte sur l’écran enfant, pas de menus, pas de scores.
 
-She taps one big picture → hears the word (Mum/Dad recording or device voice) → says it back → the app quietly tracks what stuck.
+Touche une grande image → entend le mot (voix des parents ou de l’iPad) → le redit → l’app suit tranquillement ce qui accroche.
 
-**English · Spanish · Mandarin · Japanese** — the same 30 everyday objects, on rotation.
+**Anglais · Espagnol · Mandarin · Japonais** — les mêmes 30 objets, en rotation.
 
-## The daily loop (~11 minutes)
+## La boucle du jour (~11 minutes)
 
-1. **Yesterday’s misses first**
-2. **Words not heard in four days**
-3. **At most two new words per day**
-4. Miss three days in a row → drop it, swap for an easier object in that language
-5. Miss in-session → reappear ~three turns later (no buzzers)
-6. Parents get **four dinner words** with exactly when to say them
+1. D’abord les ratés d’hier
+2. Puis les mots pas entendus depuis 4 jours
+3. Au plus **2 mots neufs** par jour
+4. Raté 3 jours de suite → on le retire, objet plus facile dans la même langue
+5. Raté en séance → revient ~3 tours plus tard (jamais de bip)
+6. Les parents reçoivent **4 mots pour le dîner**, avec le moment exact
 
 ## Lancer en local
 
@@ -22,24 +22,15 @@ npm install --ignore-scripts
 npm run dev
 ```
 
-Ouvrir l’URL affichée (souvent `http://localhost:5173`). Sur iPad : Safari → Partager → Sur l’écran d’accueil pour un mode plein écran.
+Ouvrir l’URL affichée. Sur iPad : Safari → Partager → **Sur l’écran d’accueil**.
 
-## Build
+## En ligne
 
-```bash
-npm run build
-npm run preview
-```
-
-## Déploiement
-
-Le site est en ligne : **https://fredericnjoh-lab.github.io/pistache/**
-
-Déploiement automatique via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) sur push vers `cursor/pistache-v2-abf3`.
+**https://fredericnjoh-lab.github.io/pistache/**
 
 ## Stack
 
 - React 19 + Vite 6
-- Web Speech API (TTS + recognition when available)
-- localStorage progress + offline service worker
-- Parent voice clips stored on-device
+- Web Speech API (synthèse + reconnaissance)
+- Enregistrements parents en localStorage
+- Service worker hors-ligne

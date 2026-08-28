@@ -16,8 +16,10 @@ export function ProgressChart({ state }) {
 
   if (!dates.length) {
     return (
-      <div className="chart-empty">
-        <p>Day 0 — nothing on the graph yet. Eleven minutes today starts the line.</p>
+      <div className="chart-wrap chart-empty">
+        <span className="chart-kicker">Jour 0</span>
+        <h3>Rien sur le graphique encore</h3>
+        <p>Onze minutes aujourd’hui — et la ligne démarre.</p>
       </div>
     );
   }
@@ -34,20 +36,22 @@ export function ProgressChart({ state }) {
 
   const paths = LANGUAGES.map((lang) => {
     const pts = series[lang.id] || [];
-    const d = pts.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    const d = pts
+      .map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`)
+      .join(" ");
     return { lang, d, last: pts[pts.length - 1] || 0 };
   });
 
   const quietX = dates.length > 1 ? x(Math.min(quietDay, dates.length - 1)) : null;
-  const daysIn = dayIndex(todayKey());
+  const daysIn = Math.max(0, dayIndex(todayKey()));
 
   return (
     <div className="chart-wrap">
       <div className="chart-title">
-        <span className="chart-kicker">{Math.max(daysIn, dates.length - 1)} days in</span>
-        <h3>She was listening the whole time</h3>
+        <span className="chart-kicker">{daysIn} jour{daysIn > 1 ? "s" : ""}</span>
+        <h3>Elle ou il écoutait déjà tout ce temps</h3>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg" role="img" aria-label="Progress across four languages">
+      <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg" role="img" aria-label="Progression des quatre langues">
         {[0.25, 0.5, 0.75, 1].map((f) => (
           <line
             key={f}
@@ -63,12 +67,20 @@ export function ProgressChart({ state }) {
           <>
             <line x1={quietX} x2={quietX} y1={pt} y2={H - pb} stroke="rgba(38,70,83,.35)" strokeDasharray="4 5" />
             <text x={quietX + 6} y={pt + 12} fontSize="10" fill="#5C6B73" fontFamily="var(--font-body)">
-              day 21
+              jour 21
             </text>
           </>
         )}
         {paths.map(({ lang, d }) => (
-          <path key={lang.id} d={d} fill="none" stroke={LANG_COLORS[lang.id]} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            key={lang.id}
+            d={d}
+            fill="none"
+            stroke={LANG_COLORS[lang.id]}
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         ))}
         {paths.map(({ lang, last }) => (
           <text
@@ -93,7 +105,9 @@ export function ProgressChart({ state }) {
         ))}
       </div>
       {daysIn < 21 && (
-        <p className="chart-note">Day 21 is where every parent quits. Stay — all four lines turn together.</p>
+        <p className="chart-note">
+          Le jour 21, presque tous les parents abandonnent. Reste — les quatre lignes partent ensemble.
+        </p>
       )}
     </div>
   );
@@ -103,12 +117,14 @@ export function DinnerWords({ words }) {
   if (!words?.length) return null;
   return (
     <div className="dinner">
-      <h3>Tonight at dinner</h3>
-      <p className="dinner-sub">Say these out loud — exactly when noted. No quiz, just airtime.</p>
+      <h3>Ce soir à table</h3>
+      <p className="dinner-sub">Dis-les à voix haute — exactement au moment indiqué. Pas de quiz, juste de l’air.</p>
       <ul>
         {words.map((w) => (
           <li key={`${w.objectId}-${w.lang}`}>
-            <span className="dinner-emoji" aria-hidden>{w.emoji}</span>
+            <span className="dinner-emoji" aria-hidden>
+              {w.emoji}
+            </span>
             <div>
               <strong>{w.word}</strong>
               <span className="muted"> · {w.language}</span>
@@ -124,13 +140,15 @@ export function DinnerWords({ words }) {
 export function ParentSummary({ state }) {
   const line = parentOneLiner(state);
   const day = state.days[todayKey()];
+  const said = day?.items?.filter((i) => i.correct).length || 0;
+  const missed = day?.items?.filter((i) => !i.correct).length || 0;
   return (
     <div className="summary">
       <p className="one-liner">{line}</p>
       {day?.items?.length > 0 && (
         <div className="summary-stats">
-          <span>{day.items.filter((i) => i.correct).length} said back</span>
-          <span>{day.items.filter((i) => !i.correct).length} quiet misses</span>
+          <span>{said} redis</span>
+          <span>{missed} refiles douces</span>
         </div>
       )}
       <DinnerWords words={day?.dinnerWords} />
@@ -138,10 +156,37 @@ export function ParentSummary({ state }) {
   );
 }
 
-export function VocabGrid({ state, onRecord }) {
+export function LessonPreview({ lesson }) {
+  if (!lesson?.length) return null;
+  const langs = new Set(lesson.map((i) => i.lang));
+  return (
+    <div className="preview">
+      <div className="preview-meta">
+        <span>{lesson.length} tours</span>
+        <span>·</span>
+        <span>{langs.size} langues</span>
+        <span>·</span>
+        <span>~11 min</span>
+      </div>
+      <div className="preview-row" aria-hidden>
+        {lesson.slice(0, 12).map((item, i) => {
+          const obj = OBJECT_BY_ID[item.objectId];
+          return (
+            <span key={`${item.key}-${i}`} className="preview-pill" title={obj?.words[item.lang]}>
+              {obj?.emoji}
+            </span>
+          );
+        })}
+        {lesson.length > 12 && <span className="preview-more">+{lesson.length - 12}</span>}
+      </div>
+    </div>
+  );
+}
+
+export function VocabGrid({ state, onRecord, onPlay, onDelete }) {
   return (
     <div className="vocab-grid">
-      {Object.values(OBJECT_BY_ID).slice(0, 30).map((obj) => (
+      {Object.values(OBJECT_BY_ID).map((obj) => (
         <div key={obj.id} className="vocab-card">
           <span className="vocab-emoji">{obj.emoji}</span>
           <div className="vocab-words">
@@ -150,23 +195,64 @@ export function VocabGrid({ state, onRecord }) {
               const hasRec = !!state.recordings?.[key];
               const w = state.words[key];
               return (
-                <button
-                  key={lang.id}
-                  type="button"
-                  className={`vocab-chip ${hasRec ? "has-rec" : ""}`}
-                  title={`Record ${obj.words[lang.id]}`}
-                  onClick={() => onRecord(obj.id, lang.id)}
-                >
-                  <span>{lang.flag}</span>
-                  <span>{obj.words[lang.id]}</span>
-                  {w?.correctCount > 0 && <span className="dot ok" />}
-                  {hasRec && <span className="dot rec" />}
-                </button>
+                <div key={lang.id} className={`vocab-chip-wrap ${hasRec ? "has-rec" : ""}`}>
+                  <button
+                    type="button"
+                    className="vocab-chip"
+                    title={`Enregistrer ${obj.words[lang.id]}`}
+                    onClick={() => onRecord(obj.id, lang.id)}
+                  >
+                    <span>{lang.flag}</span>
+                    <span>{obj.words[lang.id]}</span>
+                    {w?.correctCount > 0 && <span className="dot ok" />}
+                    {hasRec && <span className="dot rec" />}
+                  </button>
+                  {hasRec && (
+                    <span className="vocab-actions">
+                      <button type="button" className="mini" onClick={() => onPlay(key)} aria-label="Écouter">
+                        ▶
+                      </button>
+                      <button type="button" className="mini" onClick={() => onDelete(key)} aria-label="Supprimer">
+                        ×
+                      </button>
+                    </span>
+                  )}
+                </div>
               );
             })}
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+export function Onboarding({ name, setName, onReady, micOk }) {
+  return (
+    <div className="onboard pop">
+      <p className="eyebrow">Première fois</p>
+      <h1>Une boucle sonore. Zéro lecture.</h1>
+      <p className="lede">
+        Une grande image, un mot entendu (ta voix ou celle de l’iPad), un mot redit.
+        Les ratés reviennent tout seuls — jamais de bip.
+      </p>
+      <label className="name-field">
+        Prénom de l’enfant
+        <input
+          value={name}
+          placeholder="ex. Alba"
+          onChange={(e) => setName(e.target.value)}
+          autoComplete="off"
+        />
+      </label>
+      <ul className="checklist">
+        <li className={micOk ? "ok" : ""}>{micOk ? "✓" : "○"} Micro (demandé au prochain écran)</li>
+        <li>○ Plein écran : Safari → Partager → Sur l’écran d’accueil</li>
+        <li>○ Optionnel : vos voix dans l’onglet Voix</li>
+      </ul>
+      <button type="button" className="cta" disabled={!name.trim()} onClick={onReady}>
+        C’est prêt
+      </button>
     </div>
   );
 }
