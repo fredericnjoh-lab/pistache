@@ -1,0 +1,19 @@
+{
+  "name": "Pistache",
+  "short_name": "Pistache",
+  "description": "Boucle vocale pour 3–6 ans — anglais, espagnol, mandarin, japonais.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#E8F4F0",
+  "theme_color": "#2A9D8F",
+  "lang": "fr",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
