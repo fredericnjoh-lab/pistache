@@ -1,6 +1,7 @@
 import { LANGUAGES } from "../data/vocabulary.js";
 
 let voicesCache = [];
+let audioCtx = null;
 
 function refreshVoices() {
   if (typeof speechSynthesis === "undefined") return [];
@@ -18,25 +19,79 @@ export function findVoice(langId) {
   const meta = LANGUAGES.find((l) => l.id === langId);
   if (!meta) return null;
   for (const hint of meta.voiceHints) {
-    const match = voices.find((v) => v.lang?.toLowerCase().startsWith(hint.toLowerCase()));
+    const match =
+      voices.find((v) => v.lang?.toLowerCase() === hint.toLowerCase()) ||
+      voices.find((v) => v.lang?.toLowerCase().startsWith(hint.toLowerCase()));
     if (match) return match;
   }
   return null;
 }
 
+export function unlockAudio() {
+  try {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    // Warm TTS on iOS (must be in user gesture)
+    if (typeof speechSynthesis !== "undefined") {
+      const warm = new SpeechSynthesisUtterance(" ");
+      warm.volume = 0;
+      speechSynthesis.speak(warm);
+      speechSynthesis.cancel();
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Soft positive chime — never a buzzer */
+export function playCelebrateChime() {
+  try {
+    if (!audioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      audioCtx = new Ctx();
+    }
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const now = audioCtx.currentTime;
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.02 + i * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.35 + i * 0.08);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start(now + i * 0.06);
+      osc.stop(now + 0.45 + i * 0.08);
+    });
+  } catch {
+    /* ignore */
+  }
+}
+
 /**
- * Speak a word. Prefer parent recording (data URL), else device TTS.
+ * Speak a word. Prefer parent recording, else device TTS (native script via `text`).
  */
-export function speakWord({ text, lang, recordingDataUrl, rate = 0.85 }) {
+export function speakWord({ text, lang, recordingDataUrl, rate = 0.82 }) {
   return new Promise((resolve) => {
     if (recordingDataUrl) {
       const audio = new Audio(recordingDataUrl);
       audio.onended = () => resolve("recording");
-      audio.onerror = () => resolve(speakTts(text, lang, rate));
-      audio.play().catch(() => resolve(speakTts(text, lang, rate)));
+      audio.onerror = () => {
+        speakTts(text, lang, rate).then(resolve);
+      };
+      audio.play().catch(() => {
+        speakTts(text, lang, rate).then(resolve);
+      });
       return;
     }
-    resolve(speakTts(text, lang, rate));
+    speakTts(text, lang, rate).then(resolve);
   });
 }
 
@@ -47,16 +102,27 @@ function speakTts(text, lang, rate) {
       return;
     }
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const voice = findVoice(lang);
-    if (voice) u.voice = voice;
-    const meta = LANGUAGES.find((l) => l.id === lang);
-    u.lang = meta?.voiceHints[0] || "en-US";
-    u.rate = rate;
-    u.pitch = 1.05;
-    u.onend = () => resolve("tts");
-    u.onerror = () => resolve("error");
-    speechSynthesis.speak(u);
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      resolve(v);
+    };
+    // Tiny delay helps some iOS builds after cancel
+    setTimeout(() => {
+      const u = new SpeechSynthesisUtterance(text);
+      const voice = findVoice(lang);
+      if (voice) u.voice = voice;
+      const meta = LANGUAGES.find((l) => l.id === lang);
+      u.lang = meta?.voiceHints[0] || "en-US";
+      u.rate = rate;
+      u.pitch = 1.08;
+      u.onend = () => finish("tts");
+      u.onerror = () => finish("error");
+      speechSynthesis.speak(u);
+      // Safety: some browsers never fire onend
+      setTimeout(() => finish("tts-timeout"), Math.max(2500, text.length * 420));
+    }, 40);
   });
 }
 
@@ -72,10 +138,9 @@ export function speechRecognitionSupported() {
 }
 
 /**
- * Listen for one short utterance. Returns transcript or null.
- * Soft matching is done by the caller.
+ * Listen once. Returns { ok, transcript, alternatives, reason }.
  */
-export function listenOnce({ lang, timeoutMs = 5000 }) {
+export function listenOnce({ lang, timeoutMs = 5500 }) {
   return new Promise((resolve) => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) {
@@ -87,7 +152,7 @@ export function listenOnce({ lang, timeoutMs = 5000 }) {
     const meta = LANGUAGES.find((l) => l.id === lang);
     rec.lang = meta?.voiceHints[0] || "en-US";
     rec.interimResults = false;
-    rec.maxAlternatives = 3;
+    rec.maxAlternatives = 5;
     rec.continuous = false;
 
     let done = false;
@@ -96,14 +161,21 @@ export function listenOnce({ lang, timeoutMs = 5000 }) {
       done = true;
       clearTimeout(timer);
       try {
-        rec.stop();
+        rec.abort();
       } catch {
-        /* ignore */
+        try {
+          rec.stop();
+        } catch {
+          /* ignore */
+        }
       }
       resolve(result);
     };
 
-    const timer = setTimeout(() => finish({ ok: false, reason: "timeout", transcript: "" }), timeoutMs);
+    const timer = setTimeout(
+      () => finish({ ok: false, reason: "timeout", transcript: "" }),
+      timeoutMs
+    );
 
     rec.onresult = (event) => {
       const alts = [];
@@ -112,7 +184,8 @@ export function listenOnce({ lang, timeoutMs = 5000 }) {
       }
       finish({ ok: true, transcript: alts[0] || "", alternatives: alts });
     };
-    rec.onerror = (e) => finish({ ok: false, reason: e.error || "error", transcript: "" });
+    rec.onerror = (e) =>
+      finish({ ok: false, reason: e.error || "error", transcript: "" });
     rec.onend = () => {
       if (!done) finish({ ok: false, reason: "ended", transcript: "" });
     };
@@ -125,7 +198,17 @@ export function listenOnce({ lang, timeoutMs = 5000 }) {
   });
 }
 
-/** Normalize for fuzzy toddler matching */
+/** Listen, and if empty/timeout, give one more chance (toddlers hesitate). */
+export async function listenWithRetry({ lang, timeoutMs = 5000 }) {
+  const first = await listenOnce({ lang, timeoutMs });
+  if (first.ok && first.transcript) return first;
+  if (first.reason === "not-allowed" || first.reason === "service-not-allowed") {
+    return first;
+  }
+  await wait(280);
+  return listenOnce({ lang, timeoutMs: timeoutMs + 800 });
+}
+
 export function normalizeSpeech(s) {
   return (s || "")
     .toLowerCase()
@@ -136,17 +219,20 @@ export function normalizeSpeech(s) {
     .trim();
 }
 
-export function matchesAccepted(transcript, acceptedList) {
-  const said = normalizeSpeech(transcript);
-  if (!said) return false;
-  return acceptedList.some((a) => {
-    const target = normalizeSpeech(a);
-    if (!target) return false;
-    if (said === target) return true;
-    if (said.includes(target) || target.includes(said)) return true;
-    // tiny edit distance for short words
-    if (target.length <= 8 && levenshtein(said, target) <= 1) return true;
-    return false;
+export function matchesAccepted(transcript, acceptedList, alternatives = []) {
+  const candidates = [transcript, ...(alternatives || [])];
+  return candidates.some((raw) => {
+    const said = normalizeSpeech(raw);
+    if (!said) return false;
+    return acceptedList.some((a) => {
+      const target = normalizeSpeech(a);
+      if (!target) return false;
+      if (said === target) return true;
+      if (said.includes(target) || target.includes(said)) return true;
+      const maxDist = target.length <= 4 ? 1 : target.length <= 8 ? 2 : 2;
+      if (levenshtein(said, target) <= maxDist) return true;
+      return false;
+    });
   });
 }
 
@@ -162,14 +248,25 @@ function levenshtein(a, b) {
   return m[a.length][b.length];
 }
 
-export async function recordParentClip(maxMs = 2500) {
+function wait(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+export async function recordParentClip(maxMs = 2200) {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  const recorder = new MediaRecorder(stream);
+  const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+    ? "audio/webm;codecs=opus"
+    : MediaRecorder.isTypeSupported("audio/mp4")
+      ? "audio/mp4"
+      : "";
+  const recorder = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream);
   const chunks = [];
-  recorder.ondataavailable = (e) => chunks.push(e.data);
+  recorder.ondataavailable = (e) => {
+    if (e.data.size) chunks.push(e.data);
+  };
 
   return new Promise((resolve, reject) => {
-    recorder.onstop = async () => {
+    recorder.onstop = () => {
       stream.getTracks().forEach((t) => t.stop());
       const blob = new Blob(chunks, { type: recorder.mimeType || "audio/webm" });
       const reader = new FileReader();
@@ -183,4 +280,14 @@ export async function recordParentClip(maxMs = 2500) {
       if (recorder.state === "recording") recorder.stop();
     }, maxMs);
   });
+}
+
+export async function ensureMicPermission() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach((t) => t.stop());
+    return true;
+  } catch {
+    return false;
+  }
 }

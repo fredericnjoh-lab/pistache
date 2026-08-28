@@ -258,10 +258,10 @@ export function pickDinnerWords(state, lesson) {
   });
 
   const moments = [
-    "when she sits down",
-    "when you pass the water",
-    "when dessert appears",
-    "when you say goodnight",
+    "en s’asseyant à table",
+    "quand tu tends l’eau",
+    "au moment du dessert",
+    "en disant bonne nuit",
   ];
 
   for (const item of ranked) {
@@ -282,10 +282,37 @@ export function pickDinnerWords(state, lesson) {
   return picks;
 }
 
+/** Recalcule les 4 mots du dîner à partir de la vraie session du jour */
+export function refreshDinnerFromSession(state, date = todayKey()) {
+  const day = getDayLog(state, date);
+  if (!day.items?.length) return state;
+
+  const byKey = {};
+  for (const item of day.items) {
+    if (!byKey[item.key]) {
+      byKey[item.key] = { objectId: item.objectId, lang: item.lang, key: item.key, hits: 0, misses: 0 };
+    }
+    if (item.correct) byKey[item.key].hits += 1;
+    else byKey[item.key].misses += 1;
+  }
+
+  const ranked = Object.values(byKey)
+    .map((x) => ({
+      ...x,
+      reason: x.misses > x.hits ? "yesterday-miss" : x.hits ? "rotation" : "new",
+    }))
+    .sort((a, b) => b.misses - a.misses || a.hits - b.hits);
+
+  day.dinnerWords = pickDinnerWords(state, ranked);
+  saveState(state);
+  return state;
+}
+
 export function parentOneLiner(state, date = todayKey()) {
   const day = state.days[date];
+  const name = state.childName || "Ton enfant";
   if (!day?.items?.length) {
-    return "No words practiced yet today — eleven minutes is enough.";
+    return `Pas encore de mots aujourd’hui — onze minutes suffisent.`;
   }
 
   const byKey = {};
@@ -306,10 +333,10 @@ export function parentOneLiner(state, date = todayKey()) {
   };
 
   if (has.length && lacks.length) {
-    return `She has ${fmt(has[0])} but not ${fmt(lacks[0])}.`;
+    return `${name} a ${fmt(has[0])} mais pas encore ${fmt(lacks[0])}.`;
   }
   if (has.length) {
-    return `Strong today — ${fmt(has[0])} stuck. Keep saying it at dinner.`;
+    return `Belle journée — ${fmt(has[0])} a accroché. Ressers-le au dîner.`;
   }
-  return `Listening day — nothing forced back yet. Day 21 energy: stay the course.`;
+  return `Journée d’écoute — rien forcé. Jour 21 : rester le cap.`;
 }

@@ -1,5 +1,5 @@
 /* Minimal service worker — cache shell for offline use on old iPads */
-const CACHE = "pistache-polyglot-v1";
+const CACHE = "pistache-polyglot-v2";
 const ASSETS = [
   "./",
   "./index.html",
