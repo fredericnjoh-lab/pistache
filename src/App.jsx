@@ -18,6 +18,7 @@ import {
   unlockAudio,
   speakWord,
 } from "./lib/speech.js";
+import { HowItWorks, HowItWorksStyles } from "./components/HowItWorks.jsx";
 import { OBJECT_BY_ID, LANGUAGES } from "./data/vocabulary.js";
 
 /**
@@ -126,6 +127,7 @@ export default function App() {
     <div className="app">
       <GlobalStyles />
       <ChildPlayStyles />
+      <HowItWorksStyles />
 
       {view === "play" && (
         <ChildPlay
@@ -185,12 +187,20 @@ export default function App() {
               <section className="hero-block">
                 <p className="eyebrow">La boucle du jour · ~11 min</p>
                 <h1>
-                  {state.childName ? `${state.childName},` : "Même"} 30 mots. Quatre langues. Zéro lecture.
+                  {state.childName ? `${state.childName} touche` : "Iel touche"}, entend, et redit.
                 </h1>
                 <p className="lede">
-                  {childName} touche une grande image, entend maman ou papa (ou l’iPad), redit le mot.
-                  Les ratés reviennent tout seuls — jamais de bip.
+                  Les mêmes 30 objets en <strong>4 langues</strong>. {childName} connaît déjà la
+                  chose — iel n’apprend que le son. Les ratés reviennent tout seuls, jamais de bip.
                 </p>
+
+                <div className="mini-loop" aria-hidden>
+                  <span>👆 touche</span>
+                  <em>→</em>
+                  <span>🔊 entend ×2</span>
+                  <em>→</em>
+                  <span>🗣️ redit</span>
+                </div>
 
                 <LessonPreview lesson={previewLesson} />
 
@@ -200,10 +210,17 @@ export default function App() {
                   </button>
                   <p className="hint">
                     {canListen
-                      ? "L’iPad écoute après le mot. Si le micro refuse, retouche l’image après qu’elle ou il a parlé. Sortie parent : 3 taps en haut à gauche."
-                      : "Cet iPad n’écoute pas — retouche l’image après le mot dit à voix haute. Sortie parent : 3 taps en haut à gauche."}
+                      ? "Le téléphone écoute après le mot. Si le micro refuse, retouche l’image quand iel a parlé."
+                      : "Ce téléphone n’écoute pas — retouche l’image quand iel a dit le mot."}
                   </p>
                 </div>
+
+                <details className="explainer">
+                  <summary>Comment ça marche, en détail</summary>
+                  <div className="explainer-body">
+                    <HowItWorks compact />
+                  </div>
+                </details>
 
                 <div className="row-opts">
                   <button
@@ -400,6 +417,51 @@ function GlobalStyles() {
         color: var(--ink-soft); font-weight: 700; font-size: 13px;
         text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0;
       }
+      .mini-loop {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 999px; padding: 10px 16px; justify-self: start;
+        font-size: 14px; font-weight: 800; color: var(--ink);
+      }
+      .mini-loop em { color: var(--mint); font-style: normal; font-weight: 800; }
+
+      .explainer {
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 18px; padding: 4px 16px;
+      }
+      .explainer summary {
+        cursor: pointer; padding: 12px 0; list-style: none;
+        font-family: var(--font-head); font-weight: 800; font-size: 16px; color: var(--mint-deep);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .explainer summary::-webkit-details-marker { display: none; }
+      .explainer summary::after { content: "▾"; margin-left: auto; transition: transform .2s; }
+      .explainer[open] summary::after { transform: rotate(180deg); }
+      .explainer-body { padding: 4px 0 16px; }
+
+      .onboard-dots { display: flex; gap: 6px; justify-content: center; }
+      .onboard-dots span {
+        width: 8px; height: 8px; border-radius: 50%; background: rgba(38,70,83,.18);
+        transition: background .2s, width .2s;
+      }
+      .onboard-dots span.on { background: var(--mint); width: 22px; border-radius: 99px; }
+      .onboard-step { display: grid; gap: 14px; }
+      .onboard-visual {
+        display: flex; align-items: center; gap: 10px; justify-content: center;
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 18px; padding: 18px; font-size: 40px;
+      }
+      .onboard-visual .arrow { font-size: 24px; color: var(--mint); }
+      .onboard-nav {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        margin-top: 4px;
+      }
+      .skip {
+        justify-self: center; border: none; background: transparent; cursor: pointer;
+        color: var(--ink-soft); font-size: 13px; font-weight: 700;
+        text-decoration: underline; text-underline-offset: 3px;
+      }
+
       .row-opts { display: grid; gap: 10px; justify-items: start; }
       .toggle {
         display: inline-flex; align-items: center; gap: 8px;

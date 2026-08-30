@@ -17,9 +17,23 @@ const PHASE_LABEL = {
   playing: "Écoute…",
   listening: "À toi — dis le mot",
   celebrate: "Bravo !",
-  model: "Encore une fois, écoute",
+  model: "Écoute encore — on le reverra",
   leaving: "",
 };
+
+/** Les 3 temps de la boucle, montrés en direct */
+const STEPS = [
+  { id: "touch", icon: "👆", label: "Touche" },
+  { id: "hear", icon: "🔊", label: "Écoute" },
+  { id: "say", icon: "🗣️", label: "Redis" },
+];
+
+function activeStep(phase) {
+  if (phase === "playing" || phase === "model") return "hear";
+  if (phase === "listening") return "say";
+  if (phase === "celebrate") return "say";
+  return "touch";
+}
 
 /**
  * Écran enfant : une grande image, le mot écrit dessous, et une barre
@@ -249,6 +263,15 @@ export default function ChildPlay({
         )}
 
         <p className={`phase-label ${phase}`}>{PHASE_LABEL[phase]}</p>
+
+        <div className="step-track" aria-hidden>
+          {STEPS.map((s) => (
+            <span key={s.id} className={`step-chip ${activeStep(phase) === s.id ? "on" : ""}`}>
+              <i>{s.icon}</i>
+              {s.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="child-progress" aria-hidden>
@@ -436,6 +459,21 @@ export function ChildPlayStyles() {
       }
       .phase-label.listening { color: #1D7A6F; }
       .phase-label.celebrate { color: #E76F51; }
+
+      .step-track { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+      .step-chip {
+        display: inline-flex; align-items: center; gap: 5px;
+        font-family: var(--font-body); font-weight: 800; font-size: 12px;
+        color: #8C9BA5; background: rgba(255,255,255,.6);
+        border: 1px solid rgba(38,70,83,.08);
+        border-radius: 999px; padding: 6px 11px;
+        transition: color .2s, background .2s, transform .2s;
+      }
+      .step-chip i { font-style: normal; font-size: 14px; }
+      .step-chip.on {
+        color: #fff; background: var(--accent); border-color: transparent;
+        transform: scale(1.06);
+      }
 
       .child-progress {
         position: relative; z-index: 2;

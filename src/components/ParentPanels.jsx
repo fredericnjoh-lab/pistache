@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { LANGUAGES, OBJECT_BY_ID, OBJECTS } from "../data/vocabulary.js";
 import { getProgressSeries, todayKey, wordStatus, STATUS_META } from "../lib/progress.js";
 import { parentOneLiner } from "../lib/lessonEngine.js";
+import { LOOP_STEPS } from "./HowItWorks.jsx";
 
 const LANG_COLORS = { en: "#2A9D8F", es: "#E76F51", zh: "#E9C46A", ja: "#264653" };
 
@@ -330,31 +331,108 @@ export function VocabGrid({ state, onRecord, onPlay, onDelete }) {
 }
 
 export function Onboarding({ name, setName, onReady, micOk }) {
+  const [step, setStep] = useState(0);
+  const last = 2;
+
   return (
     <div className="onboard pop">
-      <p className="eyebrow">Première fois</p>
-      <h1>Une boucle sonore. Zéro lecture.</h1>
-      <p className="lede">
-        Une grande image, un mot entendu (ta voix ou celle de l’iPad), un mot redit.
-        Les ratés reviennent tout seuls — jamais de bip.
-      </p>
-      <label className="name-field">
-        Prénom de l’enfant
-        <input
-          value={name}
-          placeholder="ex. Alba"
-          onChange={(e) => setName(e.target.value)}
-          autoComplete="off"
-        />
-      </label>
-      <ul className="checklist">
-        <li className={micOk ? "ok" : ""}>{micOk ? "✓" : "○"} Micro (demandé au prochain écran)</li>
-        <li>○ Plein écran : Safari → Partager → Sur l’écran d’accueil</li>
-        <li>○ Optionnel : vos voix dans l’onglet Voix</li>
-      </ul>
-      <button type="button" className="cta" disabled={!name.trim()} onClick={onReady}>
-        C’est prêt
-      </button>
+      <div className="onboard-dots" aria-hidden>
+        {[0, 1, 2].map((i) => (
+          <span key={i} className={i === step ? "on" : ""} />
+        ))}
+      </div>
+
+      {step === 0 && (
+        <div className="onboard-step">
+          <p className="eyebrow">Le principe</p>
+          <h1>Iel ne lit pas. Alors l’app parle, et l’écoute.</h1>
+          <p className="lede">
+            Les <strong>mêmes 30 objets</strong> du quotidien — pomme, chien, chaussure — en{" "}
+            <strong>anglais, espagnol, mandarin et japonais</strong>. Iel connaît déjà la chose :
+            iel n’apprend que le son.
+          </p>
+          <div className="onboard-visual" aria-hidden>
+            <span>🍎</span>
+            <span className="arrow">→</span>
+            <span>🔊</span>
+            <span className="arrow">→</span>
+            <span>🗣️</span>
+          </div>
+          <p className="lede">
+            Onze minutes par jour, jamais plus. Aucun point, aucune série à tenir.
+          </p>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="onboard-step">
+          <p className="eyebrow">Une boucle en 4 temps</p>
+          <h1>Ce qui se passe à chaque mot</h1>
+          <ol className="loop-steps">
+            {LOOP_STEPS.map((s) => (
+              <li key={s.n}>
+                <span className="loop-num">{s.n}</span>
+                <span className="loop-icon">{s.icon}</span>
+                <div>
+                  <strong>{s.title}</strong>
+                  <p>{s.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="onboard-step">
+          <p className="eyebrow">Presque prêt</p>
+          <h1>Le prénom, et c’est parti</h1>
+          <label className="name-field">
+            Prénom de l’enfant
+            <input
+              value={name}
+              placeholder="ex. Alba"
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <ul className="checklist">
+            <li className={micOk ? "ok" : ""}>
+              {micOk ? "✓" : "○"} Micro — pour entendre ce qu’iel répond
+            </li>
+            <li>○ Plein écran : Partager → Sur l’écran d’accueil</li>
+            <li>○ Optionnel : vos voix dans l’onglet Voix</li>
+          </ul>
+          <p className="hint">
+            Sans micro, ça marche aussi : tu touches l’image quand iel a dit le mot.
+          </p>
+        </div>
+      )}
+
+      <div className="onboard-nav">
+        {step > 0 ? (
+          <button type="button" className="ghost" onClick={() => setStep(step - 1)}>
+            Retour
+          </button>
+        ) : (
+          <span />
+        )}
+        {step < last ? (
+          <button type="button" className="cta" onClick={() => setStep(step + 1)}>
+            Suivant
+          </button>
+        ) : (
+          <button type="button" className="cta" disabled={!name.trim()} onClick={onReady}>
+            C’est prêt
+          </button>
+        )}
+      </div>
+
+      {step < last && (
+        <button type="button" className="skip" onClick={() => setStep(last)}>
+          Passer l’explication
+        </button>
+      )}
     </div>
   );
 }
