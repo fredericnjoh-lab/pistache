@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
-import { LANGUAGES, OBJECT_BY_ID } from "../data/vocabulary.js";
-import { getProgressSeries, todayKey } from "../lib/progress.js";
+import React, { useMemo, useState } from "react";
+import { LANGUAGES, OBJECT_BY_ID, OBJECTS } from "../data/vocabulary.js";
+import { getProgressSeries, todayKey, wordStatus, STATUS_META } from "../lib/progress.js";
 import { parentOneLiner } from "../lib/lessonEngine.js";
 
 const LANG_COLORS = { en: "#2A9D8F", es: "#E76F51", zh: "#E9C46A", ja: "#264653" };
@@ -178,6 +178,108 @@ export function LessonPreview({ lesson }) {
           );
         })}
         {lesson.length > 12 && <span className="preview-more">+{lesson.length - 12}</span>}
+      </div>
+    </div>
+  );
+}
+
+/** Onglet « Mots » : où en est chaque mot, langue par langue */
+export function WordStatusBoard({ state }) {
+  const [langFilter, setLangFilter] = useState("all");
+
+  const rows = useMemo(() => {
+    return OBJECTS.map((obj) => ({
+      obj,
+      cells: LANGUAGES.map((lang) => ({
+        lang,
+        status: wordStatus(state, obj.id, lang.id),
+        stat: state.words?.[`${obj.id}:${lang.id}`],
+      })),
+    }));
+  }, [state]);
+
+  const counts = useMemo(() => {
+    const c = { new: 0, listening: 0, learning: 0, learned: 0, paused: 0 };
+    for (const row of rows) {
+      for (const cell of row.cells) {
+        if (langFilter !== "all" && cell.lang.id !== langFilter) continue;
+        c[cell.status] += 1;
+      }
+    }
+    return c;
+  }, [rows, langFilter]);
+
+  const visible = rows.filter((row) =>
+    langFilter === "all" ? true : row.cells.some((c) => c.lang.id === langFilter)
+  );
+
+  return (
+    <div className="words-board">
+      <div className="words-legend">
+        {Object.entries(STATUS_META).map(([key, meta]) => (
+          <span key={key} className="legend-item">
+            <i style={{ background: meta.color }} />
+            {meta.label} <strong>{counts[key]}</strong>
+          </span>
+        ))}
+      </div>
+
+      <div className="lang-filter">
+        <button
+          type="button"
+          className={langFilter === "all" ? "active" : ""}
+          onClick={() => setLangFilter("all")}
+        >
+          Toutes
+        </button>
+        {LANGUAGES.map((l) => (
+          <button
+            key={l.id}
+            type="button"
+            className={langFilter === l.id ? "active" : ""}
+            onClick={() => setLangFilter(l.id)}
+          >
+            {l.flag} {l.label}
+          </button>
+        ))}
+      </div>
+
+      <p className="words-help">
+        Chaque mot passe de <strong>à venir</strong> → <strong>en écoute</strong> →{" "}
+        <strong>en cours</strong> → <strong>acquis</strong> (3 réussites). Deux mots neufs
+        maximum par jour ; raté 3 jours de suite, il passe <strong>en pause</strong> et un
+        objet plus simple prend sa place.
+      </p>
+
+      <div className="words-list">
+        {visible.map(({ obj, cells }) => (
+          <div key={obj.id} className="word-row">
+            <div className="word-row-head">
+              <span className="word-row-emoji" aria-hidden>
+                {obj.emoji}
+              </span>
+              <span className="word-row-fr">{obj.words.fr}</span>
+            </div>
+            <div className="word-row-cells">
+              {cells
+                .filter((c) => langFilter === "all" || c.lang.id === langFilter)
+                .map(({ lang, status, stat }) => {
+                  const meta = STATUS_META[status];
+                  return (
+                    <div key={lang.id} className="word-cell" style={{ borderColor: meta.color }}>
+                      <span className="word-cell-top">
+                        {lang.flag} <strong>{obj.words[lang.id]}</strong>
+                      </span>
+                      <span className="word-cell-status" style={{ color: meta.color }}>
+                        {meta.label}
+                        {stat?.correctCount ? ` · ${stat.correctCount}×` : ""}
+                      </span>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

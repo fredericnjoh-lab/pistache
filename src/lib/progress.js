@@ -14,8 +14,28 @@ const defaultState = () => ({
   settings: {
     sessionMinutes: 11,
     maxNewPerDay: 2,
+    showLabels: true,
   },
 });
+
+/** Statut lisible d'un mot pour l'écran parent */
+export function wordStatus(state, objectId, lang) {
+  const key = wordKey(objectId, lang);
+  if (state.dropped?.[key]) return "paused";
+  const w = state.words?.[key];
+  if (!w || !w.introduced) return "new";
+  if ((w.correctCount || 0) >= 3) return "learned";
+  if ((w.correctCount || 0) >= 1) return "learning";
+  return "listening";
+}
+
+export const STATUS_META = {
+  new: { label: "à venir", color: "#8C9BA5" },
+  listening: { label: "en écoute", color: "#5E8FB4" },
+  learning: { label: "en cours", color: "#E9C46A" },
+  learned: { label: "acquis", color: "#2A9D8F" },
+  paused: { label: "en pause", color: "#E76F51" },
+};
 
 /**
  * @typedef {Object} WordStat

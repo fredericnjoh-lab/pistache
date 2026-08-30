@@ -7,6 +7,7 @@ import {
   DinnerWords,
   LessonPreview,
   Onboarding,
+  WordStatusBoard,
 } from "./components/ParentPanels.jsx";
 import { loadState, saveState, todayKey, finalizeDayMissStreaks, resetAll } from "./lib/progress.js";
 import { buildDailyLesson, refreshDinnerFromSession } from "./lib/lessonEngine.js";
@@ -153,6 +154,7 @@ export default function App() {
               <nav className="nav">
                 {[
                   { id: "home", label: "Aujourd’hui" },
+                  { id: "words", label: "Mots" },
                   { id: "chart", label: "Jours" },
                   { id: "vocab", label: "Voix" },
                 ].map((t) => (
@@ -203,16 +205,31 @@ export default function App() {
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  className="name-edit"
-                  onClick={() => {
-                    const n = prompt("Prénom de l’enfant", state.childName || "");
-                    if (n != null) setState((s) => ({ ...s, childName: n.trim() }));
-                  }}
-                >
-                  {state.childName ? `Prénom : ${state.childName}` : "Ajouter un prénom"}
-                </button>
+                <div className="row-opts">
+                  <button
+                    type="button"
+                    className="name-edit"
+                    onClick={() => {
+                      const n = prompt("Prénom de l’enfant", state.childName || "");
+                      if (n != null) setState((s) => ({ ...s, childName: n.trim() }));
+                    }}
+                  >
+                    {state.childName ? `Prénom : ${state.childName}` : "Ajouter un prénom"}
+                  </button>
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={state.settings?.showLabels !== false}
+                      onChange={(e) =>
+                        setState((s) => ({
+                          ...s,
+                          settings: { ...s.settings, showLabels: e.target.checked },
+                        }))
+                      }
+                    />
+                    Afficher le mot écrit sous l’image
+                  </label>
+                </div>
 
                 {view === "done" && (
                   <div className="done-panel pop">
@@ -226,6 +243,16 @@ export default function App() {
                 )}
 
                 {view === "home" && day?.completed && <ParentSummary state={state} />}
+              </section>
+            )}
+
+            {view === "words" && (
+              <section>
+                <h2 className="section-title">Où en sont les mots</h2>
+                <p className="lede tight">
+                  30 objets × 4 langues. L’app choisit seule les mots du jour — voilà l’état exact.
+                </p>
+                <WordStatusBoard state={state} />
               </section>
             )}
 
@@ -373,6 +400,53 @@ function GlobalStyles() {
         color: var(--ink-soft); font-weight: 700; font-size: 13px;
         text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0;
       }
+      .row-opts { display: grid; gap: 10px; justify-items: start; }
+      .toggle {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 13px; font-weight: 700; color: var(--ink-soft); cursor: pointer;
+      }
+      .toggle input { width: 20px; height: 20px; accent-color: var(--mint); }
+
+      .words-board { display: grid; gap: 14px; margin-top: 4px; }
+      .words-legend { display: flex; flex-wrap: wrap; gap: 10px; }
+      .legend-item {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12px; font-weight: 700; color: var(--ink-soft);
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 999px; padding: 6px 12px;
+      }
+      .legend-item i { width: 9px; height: 9px; border-radius: 50%; }
+      .legend-item strong { color: var(--ink); }
+      .lang-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+      .lang-filter button {
+        border: 1px solid rgba(38,70,83,.12); background: #fff; color: var(--ink-soft);
+        border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+      }
+      .lang-filter button.active { background: var(--mint); border-color: var(--mint); color: #fff; }
+      .words-help {
+        margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-soft);
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 16px; padding: 14px 16px;
+      }
+      .words-help strong { color: var(--ink); }
+      .words-list { display: grid; gap: 10px; }
+      .word-row {
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 16px; padding: 12px 14px; display: grid; gap: 10px;
+      }
+      .word-row-head { display: flex; align-items: center; gap: 10px; }
+      .word-row-emoji { font-size: 30px; }
+      .word-row-fr { font-family: var(--font-head); font-weight: 800; font-size: 17px; }
+      .word-row-cells {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;
+      }
+      .word-cell {
+        display: grid; gap: 2px; background: #fff;
+        border: 1px solid; border-left-width: 4px; border-radius: 12px; padding: 8px 10px;
+      }
+      .word-cell-top { font-size: 13px; color: var(--ink-soft); }
+      .word-cell-top strong { color: var(--ink); }
+      .word-cell-status { font-size: 11.5px; font-weight: 800; }
 
       .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
       .checklist li { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
