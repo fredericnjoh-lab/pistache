@@ -7,6 +7,7 @@ import {
   DinnerWords,
   LessonPreview,
   Onboarding,
+  WordStatusBoard,
 } from "./components/ParentPanels.jsx";
 import { loadState, saveState, todayKey, finalizeDayMissStreaks, resetAll } from "./lib/progress.js";
 import { buildDailyLesson, refreshDinnerFromSession } from "./lib/lessonEngine.js";
@@ -17,6 +18,7 @@ import {
   unlockAudio,
   speakWord,
 } from "./lib/speech.js";
+import { HowItWorks, HowItWorksStyles } from "./components/HowItWorks.jsx";
 import { OBJECT_BY_ID, LANGUAGES } from "./data/vocabulary.js";
 
 /**
@@ -125,6 +127,7 @@ export default function App() {
     <div className="app">
       <GlobalStyles />
       <ChildPlayStyles />
+      <HowItWorksStyles />
 
       {view === "play" && (
         <ChildPlay
@@ -153,6 +156,7 @@ export default function App() {
               <nav className="nav">
                 {[
                   { id: "home", label: "Aujourd’hui" },
+                  { id: "words", label: "Mots" },
                   { id: "chart", label: "Jours" },
                   { id: "vocab", label: "Voix" },
                 ].map((t) => (
@@ -183,12 +187,20 @@ export default function App() {
               <section className="hero-block">
                 <p className="eyebrow">La boucle du jour · ~11 min</p>
                 <h1>
-                  {state.childName ? `${state.childName},` : "Même"} 30 mots. Quatre langues. Zéro lecture.
+                  {state.childName ? `${state.childName} touche` : "Iel touche"}, entend, et redit.
                 </h1>
                 <p className="lede">
-                  {childName} touche une grande image, entend maman ou papa (ou l’iPad), redit le mot.
-                  Les ratés reviennent tout seuls — jamais de bip.
+                  Les mêmes 30 objets en <strong>4 langues</strong>. {childName} connaît déjà la
+                  chose — iel n’apprend que le son. Les ratés reviennent tout seuls, jamais de bip.
                 </p>
+
+                <div className="mini-loop" aria-hidden>
+                  <span>👆 touche</span>
+                  <em>→</em>
+                  <span>🔊 entend ×2</span>
+                  <em>→</em>
+                  <span>🗣️ redit</span>
+                </div>
 
                 <LessonPreview lesson={previewLesson} />
 
@@ -198,21 +210,43 @@ export default function App() {
                   </button>
                   <p className="hint">
                     {canListen
-                      ? "L’iPad écoute après le mot. Si le micro refuse, retouche l’image après qu’elle ou il a parlé. Sortie parent : 3 taps en haut à gauche."
-                      : "Cet iPad n’écoute pas — retouche l’image après le mot dit à voix haute. Sortie parent : 3 taps en haut à gauche."}
+                      ? "Le téléphone écoute après le mot. Si le micro refuse, retouche l’image quand iel a parlé."
+                      : "Ce téléphone n’écoute pas — retouche l’image quand iel a dit le mot."}
                   </p>
                 </div>
 
-                <button
-                  type="button"
-                  className="name-edit"
-                  onClick={() => {
-                    const n = prompt("Prénom de l’enfant", state.childName || "");
-                    if (n != null) setState((s) => ({ ...s, childName: n.trim() }));
-                  }}
-                >
-                  {state.childName ? `Prénom : ${state.childName}` : "Ajouter un prénom"}
-                </button>
+                <details className="explainer">
+                  <summary>Comment ça marche, en détail</summary>
+                  <div className="explainer-body">
+                    <HowItWorks compact />
+                  </div>
+                </details>
+
+                <div className="row-opts">
+                  <button
+                    type="button"
+                    className="name-edit"
+                    onClick={() => {
+                      const n = prompt("Prénom de l’enfant", state.childName || "");
+                      if (n != null) setState((s) => ({ ...s, childName: n.trim() }));
+                    }}
+                  >
+                    {state.childName ? `Prénom : ${state.childName}` : "Ajouter un prénom"}
+                  </button>
+                  <label className="toggle">
+                    <input
+                      type="checkbox"
+                      checked={state.settings?.showLabels !== false}
+                      onChange={(e) =>
+                        setState((s) => ({
+                          ...s,
+                          settings: { ...s.settings, showLabels: e.target.checked },
+                        }))
+                      }
+                    />
+                    Afficher le mot écrit sous l’image
+                  </label>
+                </div>
 
                 {view === "done" && (
                   <div className="done-panel pop">
@@ -226,6 +260,16 @@ export default function App() {
                 )}
 
                 {view === "home" && day?.completed && <ParentSummary state={state} />}
+              </section>
+            )}
+
+            {view === "words" && (
+              <section>
+                <h2 className="section-title">Où en sont les mots</h2>
+                <p className="lede tight">
+                  30 objets × 4 langues. L’app choisit seule les mots du jour — voilà l’état exact.
+                </p>
+                <WordStatusBoard state={state} />
               </section>
             )}
 
@@ -373,6 +417,98 @@ function GlobalStyles() {
         color: var(--ink-soft); font-weight: 700; font-size: 13px;
         text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0;
       }
+      .mini-loop {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 999px; padding: 10px 16px; justify-self: start;
+        font-size: 14px; font-weight: 800; color: var(--ink);
+      }
+      .mini-loop em { color: var(--mint); font-style: normal; font-weight: 800; }
+
+      .explainer {
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 18px; padding: 4px 16px;
+      }
+      .explainer summary {
+        cursor: pointer; padding: 12px 0; list-style: none;
+        font-family: var(--font-head); font-weight: 800; font-size: 16px; color: var(--mint-deep);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .explainer summary::-webkit-details-marker { display: none; }
+      .explainer summary::after { content: "▾"; margin-left: auto; transition: transform .2s; }
+      .explainer[open] summary::after { transform: rotate(180deg); }
+      .explainer-body { padding: 4px 0 16px; }
+
+      .onboard-dots { display: flex; gap: 6px; justify-content: center; }
+      .onboard-dots span {
+        width: 8px; height: 8px; border-radius: 50%; background: rgba(38,70,83,.18);
+        transition: background .2s, width .2s;
+      }
+      .onboard-dots span.on { background: var(--mint); width: 22px; border-radius: 99px; }
+      .onboard-step { display: grid; gap: 14px; }
+      .onboard-visual {
+        display: flex; align-items: center; gap: 10px; justify-content: center;
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 18px; padding: 18px; font-size: 40px;
+      }
+      .onboard-visual .arrow { font-size: 24px; color: var(--mint); }
+      .onboard-nav {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        margin-top: 4px;
+      }
+      .skip {
+        justify-self: center; border: none; background: transparent; cursor: pointer;
+        color: var(--ink-soft); font-size: 13px; font-weight: 700;
+        text-decoration: underline; text-underline-offset: 3px;
+      }
+
+      .row-opts { display: grid; gap: 10px; justify-items: start; }
+      .toggle {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 13px; font-weight: 700; color: var(--ink-soft); cursor: pointer;
+      }
+      .toggle input { width: 20px; height: 20px; accent-color: var(--mint); }
+
+      .words-board { display: grid; gap: 14px; margin-top: 4px; }
+      .words-legend { display: flex; flex-wrap: wrap; gap: 10px; }
+      .legend-item {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12px; font-weight: 700; color: var(--ink-soft);
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 999px; padding: 6px 12px;
+      }
+      .legend-item i { width: 9px; height: 9px; border-radius: 50%; }
+      .legend-item strong { color: var(--ink); }
+      .lang-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+      .lang-filter button {
+        border: 1px solid rgba(38,70,83,.12); background: #fff; color: var(--ink-soft);
+        border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+      }
+      .lang-filter button.active { background: var(--mint); border-color: var(--mint); color: #fff; }
+      .words-help {
+        margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-soft);
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 16px; padding: 14px 16px;
+      }
+      .words-help strong { color: var(--ink); }
+      .words-list { display: grid; gap: 10px; }
+      .word-row {
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 16px; padding: 12px 14px; display: grid; gap: 10px;
+      }
+      .word-row-head { display: flex; align-items: center; gap: 10px; }
+      .word-row-emoji { font-size: 30px; }
+      .word-row-fr { font-family: var(--font-head); font-weight: 800; font-size: 17px; }
+      .word-row-cells {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;
+      }
+      .word-cell {
+        display: grid; gap: 2px; background: #fff;
+        border: 1px solid; border-left-width: 4px; border-radius: 12px; padding: 8px 10px;
+      }
+      .word-cell-top { font-size: 13px; color: var(--ink-soft); }
+      .word-cell-top strong { color: var(--ink); }
+      .word-cell-status { font-size: 11.5px; font-weight: 800; }
 
       .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
       .checklist li { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
