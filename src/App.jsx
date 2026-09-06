@@ -1,88 +1,104 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ChildPlay, { ChildPlayStyles } from "./components/ChildPlay.jsx";
 import {
   ProgressChart,
-  ParentSummary,
   VocabGrid,
-  DinnerWords,
-  LessonPreview,
-  Onboarding,
+  WordStatusBoard,
 } from "./components/ParentPanels.jsx";
-import { loadState, saveState, todayKey, finalizeDayMissStreaks, resetAll } from "./lib/progress.js";
+import Landing3D, { Landing3DStyles } from "./components/Landing3D.jsx";
+import {
+  AddChild,
+  ChildHistory,
+  ChildOverview,
+  ChildSwitcher,
+  FamilyDashboardStyles,
+} from "./components/FamilyDashboard.jsx";
+import {
+  activeChild,
+  addChild,
+  finalizeDayMissStreaks,
+  loadFamily,
+  saveFamily,
+  todayKey,
+  updateChild,
+} from "./lib/progress.js";
 import { buildDailyLesson, refreshDinnerFromSession } from "./lib/lessonEngine.js";
 import {
   recordParentClip,
-  speechRecognitionSupported,
   ensureMicPermission,
   unlockAudio,
   speakWord,
 } from "./lib/speech.js";
 import { OBJECT_BY_ID, LANGUAGES } from "./data/vocabulary.js";
 
-/**
- * Pistache — boucle polyglotte voix-first pour 3–6 ans.
- */
 export default function App() {
-  const [state, setState] = useState(() => loadState());
-  const [view, setView] = useState(() => (loadState().childName ? "home" : "onboard"));
+  const [family, setFamily] = useState(() => loadFamily());
+  const [space, setSpace] = useState("landing"); // landing | family | course
+  const [tab, setTab] = useState("overview");
+  const [showAdd, setShowAdd] = useState(false);
   const [lesson, setLesson] = useState([]);
+  const [courseIndex, setCourseIndex] = useState(0);
   const [recording, setRecording] = useState(null);
-  const [micOk, setMicOk] = useState(false);
-  const [draftName, setDraftName] = useState("");
-  const canListen = speechRecognitionSupported();
+  const child = activeChild(family);
 
   useEffect(() => {
-    saveState(state);
-  }, [state]);
+    saveFamily(family);
+  }, [family]);
 
-  useEffect(() => {
-    // Prépare la leçon du jour côté parent (aperçu)
-    const next = { ...state };
-    const built = buildDailyLesson(next);
-    setLesson(built);
-    setState((s) => ({ ...s, ...next, days: next.days, startedAt: next.startedAt || s.startedAt }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const enterFamily = () => {
+    setFamily((f) => ({ ...f, hasSeenLanding: true }));
+    setSpace("family");
+    setTab("overview");
+    if (!family.children.length) setShowAdd(true);
+  };
+
+  const setChildState = useCallback((nextChild) => {
+    setFamily((current) =>
+      updateChild(current, current.activeChildId, typeof nextChild === "function" ? nextChild : () => nextChild)
+    );
   }, []);
 
-  const day = state.days[todayKey()];
-  const childName = state.childName || "ton enfant";
-
-  const previewLesson = useMemo(() => {
-    if (lesson.length) return lesson;
-    return day?.lesson || [];
-  }, [lesson, day]);
-
   const startLesson = useCallback(async () => {
+    if (!child) return;
     unlockAudio();
-    const ok = await ensureMicPermission();
-    setMicOk(ok);
-    const next = { ...state };
+    await ensureMicPermission();
+    const next = structuredClone(child);
     if (!next.startedAt) next.startedAt = todayKey();
-    // Force rebuild if empty session so dinner words stay fresh
-    const d = next.days[todayKey()];
-    if (d && !d.items?.length) d.forceRebuild = false;
     const built = buildDailyLesson(next);
-    setState({ ...next });
+    next.resume = { lesson: built, index: 0, savedAt: Date.now() };
+    setChildState(next);
     setLesson(built);
-    setView("play");
-  }, [state]);
+    setCourseIndex(0);
+    setSpace("course");
+  }, [child, setChildState]);
+
+  const resumeLesson = useCallback(() => {
+    if (!child?.resume?.lesson?.length) return startLesson();
+    setLesson(child.resume.lesson);
+    setCourseIndex(child.resume.index || 0);
+    setSpace("course");
+  }, [child, startLesson]);
 
   const completeLesson = useCallback(() => {
-    let next = finalizeDayMissStreaks({ ...state });
+    if (!child) return;
+    let next = finalizeDayMissStreaks(structuredClone(child));
     const d = next.days[todayKey()];
     if (d) d.completed = true;
     next = refreshDinnerFromSession(next);
-    setState({ ...next });
-    setView("done");
-  }, [state]);
+    next.resume = null;
+    setChildState(next);
+    setSpace("family");
+    setTab("overview");
+  }, [child, setChildState]);
 
   const handleRecord = async (objectId, lang) => {
+    if (!child) return;
     unlockAudio();
     setRecording({ objectId, lang });
     try {
       const dataUrl = await recordParentClip(2200);
       const key = `${objectId}:${lang}`;
-      setState((s) => ({
+      setChildState((s) => ({
         ...s,
         recordings: { ...s.recordings, [key]: dataUrl },
       }));
@@ -94,7 +110,7 @@ export default function App() {
   };
 
   const playRecording = (key) => {
-    const dataUrl = state.recordings?.[key];
+    const dataUrl = child?.recordings?.[key];
     if (!dataUrl) return;
     const [objectId, lang] = key.split(":");
     const obj = OBJECT_BY_ID[objectId];
@@ -106,181 +122,144 @@ export default function App() {
   };
 
   const deleteRecording = (key) => {
-    setState((s) => {
+    setChildState((s) => {
       const recordings = { ...s.recordings };
       delete recordings[key];
       return { ...s, recordings };
     });
   };
 
-  const finishOnboard = async () => {
-    const ok = await ensureMicPermission();
-    setMicOk(ok);
-    unlockAudio();
-    setState((s) => ({ ...s, childName: draftName.trim() }));
-    setView("home");
+  const createChild = (profile) => {
+    setFamily((f) => addChild(f, profile));
+    setShowAdd(false);
+    setTab("overview");
   };
 
-  return (
-    <div className="app">
-      <GlobalStyles />
-      <ChildPlayStyles />
+  const selectChild = (id) => {
+    setFamily((f) => ({ ...f, activeChildId: id }));
+    setTab("overview");
+  };
 
-      {view === "play" && (
+  const checkpoint = (index, currentLesson) => {
+    setChildState((c) => ({
+      ...c,
+      resume: { lesson: currentLesson, index, savedAt: Date.now() },
+    }));
+  };
+
+  if (space === "landing") {
+    return (
+      <>
+        <GlobalStyles />
+        <Landing3DStyles />
+        <Landing3D onEnter={enterFamily} />
+      </>
+    );
+  }
+
+  if (space === "course" && child) {
+    return (
+      <>
+        <GlobalStyles />
+        <ChildPlayStyles />
         <ChildPlay
-          state={state}
-          setState={setState}
+          state={child}
+          setState={setChildState}
           lesson={lesson}
+          initialIndex={courseIndex}
+          onCheckpoint={checkpoint}
           onLessonChange={setLesson}
-          onExit={() => setView("home")}
+          onExit={() => {
+            setSpace("family");
+            setTab("overview");
+          }}
           onComplete={completeLesson}
         />
-      )}
+      </>
+    );
+  }
 
-      {view !== "play" && (
-        <>
-          <header className="top">
-            <div className="brand">
-              <span className="brand-mark" aria-hidden>
-                🌿
-              </span>
-              <div>
-                <div className="brand-name">Pistache</div>
-                <div className="brand-tag">quatre langues · le son d’abord</div>
-              </div>
-            </div>
-            {view !== "onboard" && (
-              <nav className="nav">
-                {[
-                  { id: "home", label: "Aujourd’hui" },
-                  { id: "chart", label: "Jours" },
-                  { id: "vocab", label: "Voix" },
-                ].map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={view === t.id || (view === "done" && t.id === "home") ? "active" : ""}
-                    onClick={() => setView(t.id)}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </nav>
-            )}
-          </header>
+  return (
+    <div className="family-shell">
+      <GlobalStyles />
+      <ChildPlayStyles />
+      <FamilyDashboardStyles />
 
-          <main className="main">
-            {view === "onboard" && (
-              <Onboarding
-                name={draftName}
-                setName={setDraftName}
-                onReady={finishOnboard}
-                micOk={micOk}
+      <header className="family-header">
+        <button type="button" className="family-brand brand-button" onClick={() => setSpace("landing")}>
+          <span>🌿</span> Pistache
+        </button>
+        <nav className="family-actions">
+          {[
+            ["overview", "Accueil"],
+            ["words", "Mots"],
+            ["history", "Historique"],
+            ["chart", "Progression"],
+            ["voices", "Voix"],
+          ].map(([id, label]) => (
+            <button type="button" key={id} className={tab === id ? "active" : ""} onClick={() => setTab(id)}>
+              {label}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <main className="family-main">
+        <ChildSwitcher family={family} onSelect={selectChild} onAdd={() => setShowAdd(true)} />
+
+        {!child ? (
+          <div className="no-child">
+            <span>🌱</span>
+            <h1>Créons son parcours.</h1>
+            <p>Chaque enfant avance avec ses propres mots, à son rythme.</p>
+            <button type="button" className="cta" onClick={() => setShowAdd(true)}>Ajouter un enfant</button>
+          </div>
+        ) : (
+          <>
+            {tab === "overview" && (
+              <ChildOverview
+                child={child}
+                onStart={startLesson}
+                onResume={resumeLesson}
+                onOpenWords={() => setTab("words")}
+                onOpenHistory={() => setTab("history")}
               />
             )}
-
-            {(view === "home" || view === "done") && (
-              <section className="hero-block">
-                <p className="eyebrow">La boucle du jour · ~11 min</p>
-                <h1>
-                  {state.childName ? `${state.childName},` : "Même"} 30 mots. Quatre langues. Zéro lecture.
-                </h1>
-                <p className="lede">
-                  {childName} touche une grande image, entend maman ou papa (ou l’iPad), redit le mot.
-                  Les ratés reviennent tout seuls — jamais de bip.
-                </p>
-
-                <LessonPreview lesson={previewLesson} />
-
-                <div className="cta-row">
-                  <button type="button" className="cta" onClick={startLesson}>
-                    {day?.completed ? "Encore un tour" : "Lancer la boucle"}
-                  </button>
-                  <p className="hint">
-                    {canListen
-                      ? "L’iPad écoute après le mot. Si le micro refuse, retouche l’image après qu’elle ou il a parlé. Sortie parent : 3 taps en haut à gauche."
-                      : "Cet iPad n’écoute pas — retouche l’image après le mot dit à voix haute. Sortie parent : 3 taps en haut à gauche."}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  className="name-edit"
-                  onClick={() => {
-                    const n = prompt("Prénom de l’enfant", state.childName || "");
-                    if (n != null) setState((s) => ({ ...s, childName: n.trim() }));
-                  }}
-                >
-                  {state.childName ? `Prénom : ${state.childName}` : "Ajouter un prénom"}
-                </button>
-
-                {view === "done" && (
-                  <div className="done-panel pop">
-                    <h2>Boucle terminée</h2>
-                    <ParentSummary state={state} />
-                  </div>
-                )}
-
-                {view === "home" && day?.dinnerWords?.length > 0 && !day.completed && (
-                  <DinnerWords words={day.dinnerWords} />
-                )}
-
-                {view === "home" && day?.completed && <ParentSummary state={state} />}
+            {tab === "words" && (
+              <section>
+                <p className="eyebrow">Parcours de {child.name}</p>
+                <h1 className="page-title">Ses mots</h1>
+                <WordStatusBoard state={child} />
               </section>
             )}
-
-            {view === "chart" && (
+            {tab === "history" && <ChildHistory child={child} />}
+            {tab === "chart" && (
               <section>
-                <ProgressChart state={state} />
-                <div className="myth">
-                  <h3>Rien ne se passe pendant trois semaines</h3>
-                  <p>
-                    Au début, rien ne revient. Cette période calme est le point — les oreilles avant la
-                    bouche. Vers le jour 21, les quatre lignes partent souvent ensemble.
-                  </p>
-                </div>
+                <p className="eyebrow">Parcours de {child.name}</p>
+                <h1 className="page-title">Sa progression</h1>
+                <ProgressChart state={child} />
               </section>
             )}
-
-            {view === "vocab" && (
+            {tab === "voices" && (
               <section>
-                <h2 className="section-title">Voix de papa & maman</h2>
-                <p className="lede tight">
-                  Touche une pastille pour enregistrer ce mot (~2 s). Le reste passe par la voix de l’iPad.
-                  Fonctionne hors ligne une fois chargé.
-                </p>
+                <p className="eyebrow">Voix familières pour {child.name}</p>
+                <h1 className="page-title">Enregistrer vos voix</h1>
+                <p className="page-intro">Touchez un mot pour l’enregistrer. Il remplacera la voix du téléphone pour ce profil.</p>
                 {recording && (
-                  <p className="recording-banner pop">
+                  <p className="recording-banner">
                     Enregistrement {OBJECT_BY_ID[recording.objectId]?.emoji}{" "}
                     {OBJECT_BY_ID[recording.objectId]?.words[recording.lang]} (
                     {LANGUAGES.find((l) => l.id === recording.lang)?.label})…
                   </p>
                 )}
-                <VocabGrid
-                  state={state}
-                  onRecord={handleRecord}
-                  onPlay={playRecording}
-                  onDelete={deleteRecording}
-                />
-                <button
-                  type="button"
-                  className="ghost danger"
-                  onClick={() => {
-                    if (confirm("Effacer toute la progression sur cet appareil ?")) {
-                      setState(resetAll());
-                      setLesson([]);
-                      setView("onboard");
-                      setDraftName("");
-                    }
-                  }}
-                >
-                  Réinitialiser
-                </button>
+                <VocabGrid state={child} onRecord={handleRecord} onPlay={playRecording} onDelete={deleteRecording} />
               </section>
             )}
-          </main>
-        </>
-      )}
+          </>
+        )}
+      </main>
+
+      {showAdd && <AddChild onAdd={createChild} onClose={() => family.children.length && setShowAdd(false)} />}
     </div>
   );
 }
@@ -321,6 +300,16 @@ function GlobalStyles() {
       button:focus-visible, input:focus-visible { outline: 3px solid var(--mint); outline-offset: 2px; }
 
       .app { min-height: 100vh; min-height: 100dvh; }
+      .brand-button { border: 0; background: transparent; cursor: pointer; }
+      .page-title { max-width: none; font-size: clamp(30px,5vw,42px); margin-bottom: 14px; }
+      .page-intro { color: var(--ink-soft); line-height: 1.55; margin: -6px 0 16px; }
+      .no-child {
+        min-height: 58vh; display: grid; place-content: center; justify-items: center;
+        gap: 12px; text-align: center;
+      }
+      .no-child > span { font-size: 62px; }
+      .no-child h1 { max-width: none; }
+      .no-child p { margin: 0 0 8px; color: var(--ink-soft); }
       .top {
         position: sticky; top: 0; z-index: 5;
         backdrop-filter: blur(12px);
@@ -373,6 +362,98 @@ function GlobalStyles() {
         color: var(--ink-soft); font-weight: 700; font-size: 13px;
         text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 0;
       }
+      .mini-loop {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 999px; padding: 10px 16px; justify-self: start;
+        font-size: 14px; font-weight: 800; color: var(--ink);
+      }
+      .mini-loop em { color: var(--mint); font-style: normal; font-weight: 800; }
+
+      .explainer {
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 18px; padding: 4px 16px;
+      }
+      .explainer summary {
+        cursor: pointer; padding: 12px 0; list-style: none;
+        font-family: var(--font-head); font-weight: 800; font-size: 16px; color: var(--mint-deep);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .explainer summary::-webkit-details-marker { display: none; }
+      .explainer summary::after { content: "▾"; margin-left: auto; transition: transform .2s; }
+      .explainer[open] summary::after { transform: rotate(180deg); }
+      .explainer-body { padding: 4px 0 16px; }
+
+      .onboard-dots { display: flex; gap: 6px; justify-content: center; }
+      .onboard-dots span {
+        width: 8px; height: 8px; border-radius: 50%; background: rgba(38,70,83,.18);
+        transition: background .2s, width .2s;
+      }
+      .onboard-dots span.on { background: var(--mint); width: 22px; border-radius: 99px; }
+      .onboard-step { display: grid; gap: 14px; }
+      .onboard-visual {
+        display: flex; align-items: center; gap: 10px; justify-content: center;
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 18px; padding: 18px; font-size: 40px;
+      }
+      .onboard-visual .arrow { font-size: 24px; color: var(--mint); }
+      .onboard-nav {
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        margin-top: 4px;
+      }
+      .skip {
+        justify-self: center; border: none; background: transparent; cursor: pointer;
+        color: var(--ink-soft); font-size: 13px; font-weight: 700;
+        text-decoration: underline; text-underline-offset: 3px;
+      }
+
+      .row-opts { display: grid; gap: 10px; justify-items: start; }
+      .toggle {
+        display: inline-flex; align-items: center; gap: 8px;
+        font-size: 13px; font-weight: 700; color: var(--ink-soft); cursor: pointer;
+      }
+      .toggle input { width: 20px; height: 20px; accent-color: var(--mint); }
+
+      .words-board { display: grid; gap: 14px; margin-top: 4px; }
+      .words-legend { display: flex; flex-wrap: wrap; gap: 10px; }
+      .legend-item {
+        display: inline-flex; align-items: center; gap: 6px;
+        font-size: 12px; font-weight: 700; color: var(--ink-soft);
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 999px; padding: 6px 12px;
+      }
+      .legend-item i { width: 9px; height: 9px; border-radius: 50%; }
+      .legend-item strong { color: var(--ink); }
+      .lang-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+      .lang-filter button {
+        border: 1px solid rgba(38,70,83,.12); background: #fff; color: var(--ink-soft);
+        border-radius: 999px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer;
+      }
+      .lang-filter button.active { background: var(--mint); border-color: var(--mint); color: #fff; }
+      .words-help {
+        margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--ink-soft);
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 16px; padding: 14px 16px;
+      }
+      .words-help strong { color: var(--ink); }
+      .words-list { display: grid; gap: 10px; }
+      .word-row {
+        background: var(--card); border: 1px solid rgba(38,70,83,.08);
+        border-radius: 16px; padding: 12px 14px; display: grid; gap: 10px;
+      }
+      .word-row-head { display: flex; align-items: center; gap: 10px; }
+      .word-row-emoji { font-size: 30px; }
+      .word-row-fr { font-family: var(--font-head); font-weight: 800; font-size: 17px; }
+      .word-row-cells {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;
+      }
+      .word-cell {
+        display: grid; gap: 2px; background: #fff;
+        border: 1px solid; border-left-width: 4px; border-radius: 12px; padding: 8px 10px;
+      }
+      .word-cell-top { font-size: 13px; color: var(--ink-soft); }
+      .word-cell-top strong { color: var(--ink); }
+      .word-cell-status { font-size: 11.5px; font-weight: 800; }
 
       .checklist { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
       .checklist li { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
