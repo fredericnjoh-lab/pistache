@@ -1,6 +1,44 @@
 const STORAGE_KEY = "pistache-family-v2";
 const LEGACY_KEY = "pistache-polyglot-v1";
 
+export const AGE_PATHS = [
+  {
+    id: "oral",
+    min: 3,
+    max: 6,
+    label: "Éveil oral",
+    description: "Image, écoute et répétition guidée",
+    minutes: 11,
+    turns: 20,
+    newPerDay: 2,
+  },
+  {
+    id: "guided",
+    min: 7,
+    max: 9,
+    label: "Lecture accompagnée",
+    description: "Son, mot écrit et reconnaissance active",
+    minutes: 13,
+    turns: 24,
+    newPerDay: 3,
+  },
+  {
+    id: "independent",
+    min: 10,
+    max: 12,
+    label: "Autonomie",
+    description: "Rappel actif, lecture et rythme plus soutenu",
+    minutes: 15,
+    turns: 28,
+    newPerDay: 4,
+  },
+];
+
+export function agePath(age) {
+  const value = Math.max(3, Math.min(12, Number(age) || 3));
+  return AGE_PATHS.find((path) => value >= path.min && value <= path.max) || AGE_PATHS[0];
+}
+
 export const defaultChildState = (profile = {}) => ({
   id: profile.id || `child-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
   name: profile.name || "",
@@ -17,11 +55,15 @@ export const defaultChildState = (profile = {}) => ({
   recordings: {},
   /** Words quietly dropped after 3 miss days */
   dropped: {},
-  settings: {
-    sessionMinutes: 11,
-    maxNewPerDay: 2,
-    showLabels: true,
-  },
+  settings: (() => {
+    const path = agePath(profile.age);
+    return {
+      sessionMinutes: path.minutes,
+      targetTurns: path.turns,
+      maxNewPerDay: path.newPerDay,
+      showLabels: true,
+    };
+  })(),
   resume: null,
 });
 

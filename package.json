@@ -1,9 +1,9 @@
 {
-  "name": "pistache",
+  "name": "lingopousse",
   "private": true,
   "version": "3.0.0",
   "type": "module",
-  "description": "Pistache — voice-first polyglot loop for ages 3–6 (EN / ES / ZH / JA)",
+  "description": "LingoPousse — parcours de langues adaptatifs pour les 3–12 ans",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

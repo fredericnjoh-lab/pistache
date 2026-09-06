@@ -160,10 +160,13 @@ export default function ChildPlay({
     setTimeout(() => setPulse(false), 380);
     setPhase("playing");
 
-    await speakWord({ text: spoken, lang: item.lang, recordingDataUrl: recording, rate: 0.8 });
-    await wait(400);
-    if (cancelled.current) return;
-    await speakWord({ text: spoken, lang: item.lang, recordingDataUrl: recording, rate: 0.88 });
+    await speakWord({ text: spoken, lang: item.lang, recordingDataUrl: recording, rate: state.age <= 6 ? 0.8 : 0.9 });
+    // À 3–6 ans, le modèle est répété. Les plus grands passent plus vite au rappel actif.
+    if (state.age <= 6) {
+      await wait(400);
+      if (cancelled.current) return;
+      await speakWord({ text: spoken, lang: item.lang, recordingDataUrl: recording, rate: 0.88 });
+    }
     await wait(360);
     if (cancelled.current) return;
 

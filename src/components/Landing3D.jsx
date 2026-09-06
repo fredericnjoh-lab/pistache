@@ -9,7 +9,7 @@ export default function Landing3D({ onEnter }) {
       <header className="landing-nav">
         <div className="landing-brand">
           <span>🌿</span>
-          <strong>Pistache</strong>
+          <strong>LingoPousse</strong>
         </div>
         <button type="button" className="landing-login" onClick={onEnter}>
           Espace famille
@@ -19,7 +19,7 @@ export default function Landing3D({ onEnter }) {
       <main className="landing-main">
         <section className="landing-copy">
           <div className="landing-badge">
-            <span>●</span> Pour les 3–6 ans
+            <span>●</span> Pour les 3–12 ans
           </div>
           <h1>
             Quatre langues.
@@ -27,18 +27,18 @@ export default function Landing3D({ onEnter }) {
             <em>Une voix familière.</em>
           </h1>
           <p>
-            Une boucle de 11 minutes qui écoute chaque enfant, comprend où il en est
-            et choisit les bons mots pour demain.
+            Des séances de 11 à 15 minutes qui évoluent avec l’âge, comprennent où
+            chaque enfant en est et choisissent les bons mots pour demain.
           </p>
           <div className="landing-actions">
             <button type="button" className="landing-cta" onClick={onEnter}>
               Commencer l’aventure <span>→</span>
             </button>
-            <span className="landing-note">30 objets · 4 langues · zéro pression</span>
+            <span className="landing-note">3 parcours d’âge · 4 langues · zéro pression</span>
           </div>
         </section>
 
-        <section className="scene-wrap" aria-label="Aperçu ludique de Pistache">
+        <section className="scene-wrap" aria-label="Aperçu ludique de LingoPousse">
           <div className="scene">
             <div className="orbit orbit-one" />
             <div className="orbit orbit-two" />
@@ -90,13 +90,13 @@ export default function Landing3D({ onEnter }) {
       <section className="landing-proof">
         <article>
           <span>01</span>
-          <strong>Un parcours par enfant</strong>
-          <p>Âge, rythme, réussites et difficultés restent séparés.</p>
+          <strong>De 3 à 12 ans</strong>
+          <p>Éveil oral, lecture accompagnée, puis rappel autonome.</p>
         </article>
         <article>
           <span>02</span>
-          <strong>La bonne séance, au bon moment</strong>
-          <p>Ratés d’hier, mots à revoir, deux nouveautés maximum.</p>
+          <strong>Un parcours par enfant</strong>
+          <p>Âge, rythme, réussites et difficultés restent séparés.</p>
         </article>
         <article>
           <span>03</span>

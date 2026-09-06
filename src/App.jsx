@@ -16,6 +16,7 @@ import {
 import {
   activeChild,
   addChild,
+  agePath,
   finalizeDayMissStreaks,
   loadFamily,
   saveFamily,
@@ -36,6 +37,7 @@ export default function App() {
   const [space, setSpace] = useState("landing"); // landing | family | course
   const [tab, setTab] = useState("overview");
   const [showAdd, setShowAdd] = useState(false);
+  const [editingChild, setEditingChild] = useState(null);
   const [lesson, setLesson] = useState([]);
   const [courseIndex, setCourseIndex] = useState(0);
   const [recording, setRecording] = useState(null);
@@ -135,6 +137,25 @@ export default function App() {
     setTab("overview");
   };
 
+  const editChild = (profile) => {
+    if (!editingChild) return;
+    const path = agePath(profile.age);
+    setFamily((f) =>
+      updateChild(f, editingChild.id, (current) => ({
+        ...current,
+        ...profile,
+        childName: profile.name,
+        settings: {
+          ...current.settings,
+          sessionMinutes: path.minutes,
+          targetTurns: path.turns,
+          maxNewPerDay: path.newPerDay,
+        },
+      }))
+    );
+    setEditingChild(null);
+  };
+
   const selectChild = (id) => {
     setFamily((f) => ({ ...f, activeChildId: id }));
     setTab("overview");
@@ -187,7 +208,7 @@ export default function App() {
 
       <header className="family-header">
         <button type="button" className="family-brand brand-button" onClick={() => setSpace("landing")}>
-          <span>🌿</span> Pistache
+          <span>🌿</span> LingoPousse
         </button>
         <nav className="family-actions">
           {[
@@ -223,6 +244,7 @@ export default function App() {
                 onResume={resumeLesson}
                 onOpenWords={() => setTab("words")}
                 onOpenHistory={() => setTab("history")}
+                onEdit={() => setEditingChild(child)}
               />
             )}
             {tab === "words" && (
@@ -260,6 +282,9 @@ export default function App() {
       </main>
 
       {showAdd && <AddChild onAdd={createChild} onClose={() => family.children.length && setShowAdd(false)} />}
+      {editingChild && (
+        <AddChild initialProfile={editingChild} onAdd={editChild} onClose={() => setEditingChild(null)} />
+      )}
     </div>
   );
 }

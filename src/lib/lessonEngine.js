@@ -16,9 +16,9 @@ import {
  *  3. At most two brand-new words
  * Drop any word missed three days in a row; swap for an easier object in same language.
  *
- * Target ~11 minutes: ~18–22 turns at ~30s each (tap, hear, speak, celebrate).
+ * Volume adapté à l'âge : 20 tours (3–6), 24 (7–9), 28 (10–12).
  */
-const TARGET_TURNS = 20;
+const DEFAULT_TARGET_TURNS = 20;
 
 function yesterdayKey(today = todayKey()) {
   const d = new Date(today);
@@ -137,6 +137,8 @@ export function scheduleQuietMiss(queue, currentIndex, item) {
 }
 
 export function buildDailyLesson(state) {
+  const targetTurns = state.settings?.targetTurns || DEFAULT_TARGET_TURNS;
+  const maxNew = state.settings?.maxNewPerDay ?? 2;
   applyDrops(state);
   const today = todayKey();
   const day = getDayLog(state, today);
@@ -160,22 +162,22 @@ export function buildDailyLesson(state) {
 
   // 1. Yesterday's misses
   for (const m of getMissesForDay(state, yesterdayKey(today))) {
-    if (selected.length >= TARGET_TURNS) break;
+    if (selected.length >= targetTurns) break;
     add(m);
   }
 
   // 2. Not heard in 4 days
   for (const m of notHeardInDays(state, 4, today)) {
-    if (selected.length >= TARGET_TURNS - 2) break;
+    if (selected.length >= targetTurns - maxNew) break;
     add(m);
   }
 
-  // 3. At most 2 new words
-  const news = pickNewWords(state, state.settings?.maxNewPerDay ?? 2, used);
+  // 3. Nouveautés plafonnées selon la tranche d'âge
+  const news = pickNewWords(state, maxNew, used);
   for (const n of news) add(n);
 
   // Fill remaining with rotation of introduced words (all 4 langs, varied)
-  if (selected.length < TARGET_TURNS) {
+  if (selected.length < targetTurns) {
     const pool = [];
     for (const obj of OBJECTS) {
       for (const lang of LANGUAGES) {
@@ -196,7 +198,7 @@ export function buildDailyLesson(state) {
       return ra - rb;
     });
     for (const p of pool) {
-      if (selected.length >= TARGET_TURNS) break;
+      if (selected.length >= targetTurns) break;
       add(p);
     }
   }
@@ -224,6 +226,14 @@ export function buildDailyLesson(state) {
       { objectId: "fish", lang: "es" },
       { objectId: "star", lang: "zh" },
       { objectId: "eye", lang: "ja" },
+      { objectId: "bread", lang: "en" },
+      { objectId: "bird", lang: "es" },
+      { objectId: "chair", lang: "zh" },
+      { objectId: "hat", lang: "ja" },
+      { objectId: "bus", lang: "en" },
+      { objectId: "window", lang: "es" },
+      { objectId: "ear", lang: "zh" },
+      { objectId: "sock", lang: "ja" },
     ];
     selected.length = 0;
     used.clear();
@@ -232,7 +242,7 @@ export function buildDailyLesson(state) {
     }
   }
 
-  const lesson = interleave(selected).slice(0, TARGET_TURNS);
+  const lesson = interleave(selected).slice(0, targetTurns);
   day.lesson = lesson;
   day.dinnerWords = pickDinnerWords(state, lesson);
   day.forceRebuild = false;
