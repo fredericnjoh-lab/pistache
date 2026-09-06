@@ -1,7 +1,13 @@
-const STORAGE_KEY = "pistache-polyglot-v1";
+const STORAGE_KEY = "pistache-family-v2";
+const LEGACY_KEY = "pistache-polyglot-v1";
 
-const defaultState = () => ({
-  childName: "",
+export const defaultChildState = (profile = {}) => ({
+  id: profile.id || `child-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  name: profile.name || "",
+  childName: profile.name || "",
+  age: Number(profile.age) || 3,
+  avatar: profile.avatar || "🐣",
+  createdAt: profile.createdAt || new Date().toISOString(),
   startedAt: null,
   /** @type {Record<string, WordStat>} key = `${objectId}:${lang}` */
   words: {},
@@ -16,7 +22,105 @@ const defaultState = () => ({
     maxNewPerDay: 2,
     showLabels: true,
   },
+  resume: null,
 });
+
+export const defaultFamilyState = () => ({
+  version: 2,
+  activeChildId: null,
+  children: [],
+  hasSeenLanding: false,
+});
+
+function normalizeChild(child) {
+  const base = defaultChildState({
+    id: child.id,
+    name: child.name || child.childName,
+    age: child.age,
+    avatar: child.avatar,
+    createdAt: child.createdAt,
+  });
+  return {
+    ...base,
+    ...child,
+    name: child.name || child.childName || "",
+    childName: child.name || child.childName || "",
+    words: child.words || {},
+    days: child.days || {},
+    recordings: child.recordings || {},
+    dropped: child.dropped || {},
+    settings: { ...base.settings, ...(child.settings || {}) },
+  };
+}
+
+function migrateLegacy(legacy) {
+  const family = defaultFamilyState();
+  if (!legacy || typeof legacy !== "object") return family;
+  const child = normalizeChild({
+    ...legacy,
+    id: "child-legacy",
+    name: legacy.childName || "Mon enfant",
+    age: legacy.age || 3,
+    avatar: legacy.avatar || "🌱",
+  });
+  family.children = [child];
+  family.activeChildId = child.id;
+  family.hasSeenLanding = true;
+  return family;
+}
+
+export function loadFamily() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const family = {
+        ...defaultFamilyState(),
+        ...parsed,
+        children: (parsed.children || []).map(normalizeChild),
+      };
+      if (!family.activeChildId && family.children[0]) family.activeChildId = family.children[0].id;
+      return family;
+    }
+    const legacyRaw = localStorage.getItem(LEGACY_KEY);
+    if (legacyRaw) {
+      const migrated = migrateLegacy(JSON.parse(legacyRaw));
+      saveFamily(migrated);
+      return migrated;
+    }
+    return defaultFamilyState();
+  } catch {
+    return defaultFamilyState();
+  }
+}
+
+export function saveFamily(family) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(family));
+}
+
+export function addChild(family, profile) {
+  const child = defaultChildState(profile);
+  return {
+    ...family,
+    activeChildId: child.id,
+    children: [...family.children, child],
+  };
+}
+
+export function updateChild(family, childId, updater) {
+  return {
+    ...family,
+    children: family.children.map((child) => {
+      if (child.id !== childId) return child;
+      const next = typeof updater === "function" ? updater(child) : updater;
+      return normalizeChild(next);
+    }),
+  };
+}
+
+export function activeChild(family) {
+  return family.children.find((c) => c.id === family.activeChildId) || family.children[0] || null;
+}
 
 /** Statut lisible d'un mot pour l'écran parent */
 export function wordStatus(state, objectId, lang) {
@@ -56,16 +160,18 @@ export function todayKey(d = new Date()) {
 
 export function loadState() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-    return { ...defaultState(), ...JSON.parse(raw) };
+    const raw = localStorage.getItem(LEGACY_KEY);
+    if (!raw) return defaultChildState();
+    return normalizeChild(JSON.parse(raw));
   } catch {
-    return defaultState();
+    return defaultChildState();
   }
 }
 
 export function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  // Compatibilité avec le moteur de leçon autonome et les anciens tests.
+  // L'application familiale persiste le profil complet via saveFamily().
+  localStorage.setItem(LEGACY_KEY, JSON.stringify(state));
 }
 
 export function wordKey(objectId, lang) {
@@ -189,5 +295,6 @@ export function getProgressSeries(state) {
 
 export function resetAll() {
   localStorage.removeItem(STORAGE_KEY);
-  return defaultState();
+  localStorage.removeItem(LEGACY_KEY);
+  return defaultChildState();
 }

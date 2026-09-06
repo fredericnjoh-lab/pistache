@@ -2,7 +2,15 @@
  * Smoke test for daily lesson engine
  */
 import { buildDailyLesson, scheduleQuietMiss, parentOneLiner, pickDinnerWords, refreshDinnerFromSession } from "../src/lib/lessonEngine.js";
-import { loadState, recordAttempt } from "../src/lib/progress.js";
+import {
+  activeChild,
+  addChild,
+  loadFamily,
+  loadState,
+  recordAttempt,
+  saveFamily,
+  updateChild,
+} from "../src/lib/progress.js";
 import { sayText, OBJECT_BY_ID } from "../src/data/vocabulary.js";
 
 const store = new Map();
@@ -41,6 +49,20 @@ const apple = OBJECT_BY_ID.apple;
 console.assert(sayText(apple, "zh") === "苹果", "native mandarin TTS");
 console.assert(sayText(apple, "ja") === "りんご", "native japanese TTS");
 console.assert(sayText(apple, "en") === "apple", "english falls back to words");
+
+// Migration ancien profil -> famille + isolation de deux enfants
+const migrated = loadFamily();
+console.assert(migrated.children.length === 1, "legacy profile migrates to family");
+console.assert(activeChild(migrated).childName === "Alba", "migrated child keeps identity");
+let family = addChild(migrated, { name: "Noé", age: 5, avatar: "🐼" });
+console.assert(family.children.length === 2, "second child added");
+const albaId = family.children[0].id;
+const noeId = family.children[1].id;
+family = updateChild(family, noeId, (child) => ({ ...child, startedAt: "2026-09-01" }));
+console.assert(family.children.find((c) => c.id === albaId).startedAt !== "2026-09-01", "child progress isolated");
+console.assert(family.children.find((c) => c.id === noeId).startedAt === "2026-09-01", "active child updated");
+saveFamily(family);
+console.assert(loadFamily().children.length === 2, "family persists");
 
 let q = [...lesson1];
 q = scheduleQuietMiss(q, 2, lesson1[2]);

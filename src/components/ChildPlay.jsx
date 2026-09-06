@@ -43,12 +43,15 @@ export default function ChildPlay({
   state,
   setState,
   lesson,
+  initialIndex = 0,
+  onCheckpoint,
   onLessonChange,
   onExit,
   onComplete,
 }) {
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(initialIndex);
   const [phase, setPhase] = useState("ready");
+  const [paused, setPaused] = useState(false);
   const [pulse, setPulse] = useState(false);
   const [slide, setSlide] = useState("in");
   const busy = useRef(false);
@@ -86,6 +89,7 @@ export default function ChildPlay({
   const leave = () => {
     cancelled.current = true;
     stopSpeaking();
+    onCheckpoint?.(index, lessonRef.current);
     onExit();
   };
 
@@ -126,6 +130,7 @@ export default function ChildPlay({
     setTimeout(() => {
       if (cancelled.current) return;
       setIndex(nextIndex);
+      onCheckpoint?.(nextIndex, list);
       setSlide("in");
       setPhase("ready");
       busy.current = false;
@@ -219,8 +224,16 @@ export default function ChildPlay({
       <div className="child-sky" />
 
       <header className="child-top">
-        <button type="button" className="child-back" onClick={leave}>
-          <span aria-hidden>‹</span> Quitter
+        <button
+          type="button"
+          className="child-back"
+          onClick={() => {
+            cancelled.current = true;
+            stopSpeaking();
+            setPaused(true);
+          }}
+        >
+          <span aria-hidden>Ⅱ</span> Pause
         </button>
         <div className="child-count">
           <strong>{Math.min(index + 1, total)}</strong> / {total}
@@ -289,6 +302,35 @@ export default function ChildPlay({
           ▶
         </button>
       </nav>
+
+      {paused && (
+        <div className="course-pause" role="dialog" aria-modal="true" aria-label="Cours en pause">
+          <div className="pause-card">
+            <span className="pause-avatar" aria-hidden>{state.avatar || "🌱"}</span>
+            <p className="eyebrow">Cours en pause</p>
+            <h2>Que veux-tu faire ?</h2>
+            <p>
+              La progression de {state.name || state.childName} est enregistrée au mot{" "}
+              <strong>{index + 1} sur {lesson.length}</strong>.
+            </p>
+            <button
+              type="button"
+              className="pause-continue"
+              onClick={() => {
+                cancelled.current = false;
+                busy.current = false;
+                setPhase("ready");
+                setPaused(false);
+              }}
+            >
+              Continuer le cours
+            </button>
+            <button type="button" className="pause-exit" onClick={leave}>
+              Enregistrer et revenir au profil
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -501,6 +543,28 @@ export function ChildPlayStyles() {
       .child-nav.wide { flex: 1; max-width: 220px; font-size: 16px; }
       .child-nav:disabled { opacity: .35; cursor: default; }
       .child-nav:active:not(:disabled) { transform: scale(.97); }
+
+      .course-pause {
+        position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 20px;
+        background: rgba(18,43,35,.62); backdrop-filter: blur(12px);
+      }
+      .pause-card {
+        width: min(390px,100%); display: grid; gap: 12px; justify-items: center; text-align: center;
+        padding: 27px 22px; border-radius: 26px; background: #fff;
+        box-shadow: 0 30px 80px rgba(10,35,27,.28);
+      }
+      .pause-avatar {
+        width: 64px; height: 64px; border-radius: 20px; display: grid; place-items: center;
+        background: #EFF6EC; font-size: 38px;
+      }
+      .pause-card h2 { font-family: var(--font-head); font-size: 27px; margin: 0; color: #1D332C; }
+      .pause-card > p:not(.eyebrow) { margin: 0 0 5px; color: #687B73; font-size: 14px; line-height: 1.5; }
+      .pause-continue, .pause-exit {
+        width: 100%; min-height: 50px; border-radius: 15px; font-family: var(--font-head);
+        font-weight: 800; font-size: 16px; cursor: pointer;
+      }
+      .pause-continue { border: none; background: #1E6D51; color: #fff; }
+      .pause-exit { border: 1px solid #DDE6E1; background: #F8FAF7; color: #425B52; }
 
       @keyframes invite { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
       @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.035); } }
