@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { LANGUAGES } from "../data/vocabulary.js";
-import { STATUS_META, todayKey, wordStatus } from "../lib/progress.js";
+import { agePath, STATUS_META, todayKey, wordStatus } from "../lib/progress.js";
 
 const AVATARS = ["🦊", "🐼", "🐣", "🐰", "🐯", "🐨", "🦁", "🐙"];
 
@@ -27,17 +27,18 @@ export function ChildSwitcher({ family, onSelect, onAdd }) {
   );
 }
 
-export function AddChild({ onAdd, onClose }) {
-  const [name, setName] = useState("");
-  const [age, setAge] = useState(3);
-  const [avatar, setAvatar] = useState("🦊");
+export function AddChild({ onAdd, onClose, initialProfile = null }) {
+  const [name, setName] = useState(initialProfile?.name || "");
+  const [age, setAge] = useState(initialProfile?.age || 3);
+  const [avatar, setAvatar] = useState(initialProfile?.avatar || "🦊");
+  const path = agePath(age);
 
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <div className="profile-modal" role="dialog" aria-modal="true" aria-label="Ajouter un enfant" onMouseDown={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer">×</button>
-        <p className="eyebrow">Nouveau parcours</p>
-        <h2>Ajouter un enfant</h2>
+        <p className="eyebrow">{initialProfile ? "Son profil" : "Nouveau parcours"}</p>
+        <h2>{initialProfile ? `Modifier ${initialProfile.name}` : "Ajouter un enfant"}</h2>
         <p>Chaque enfant garde ses mots, son rythme et son historique séparément.</p>
 
         <label>
@@ -47,9 +48,14 @@ export function AddChild({ onAdd, onClose }) {
         <label>
           Âge
           <select value={age} onChange={(e) => setAge(Number(e.target.value))}>
-            {[3, 4, 5, 6].map((a) => <option key={a} value={a}>{a} ans</option>)}
+            {[3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((a) => <option key={a} value={a}>{a} ans</option>)}
           </select>
         </label>
+        <div className="path-preview">
+          <span>{path.label}</span>
+          <strong>{path.minutes} min · {path.turns} mots · {path.newPerDay} nouveautés max.</strong>
+          <small>{path.description}</small>
+        </div>
         <fieldset>
           <legend>Son animal</legend>
           <div className="avatar-grid">
@@ -64,15 +70,16 @@ export function AddChild({ onAdd, onClose }) {
           disabled={!name.trim()}
           onClick={() => onAdd({ name: name.trim(), age, avatar })}
         >
-          Créer son parcours
+          {initialProfile ? "Enregistrer les changements" : "Créer son parcours"}
         </button>
       </div>
     </div>
   );
 }
 
-export function ChildOverview({ child, onStart, onResume, onOpenWords, onOpenHistory }) {
+export function ChildOverview({ child, onStart, onResume, onOpenWords, onOpenHistory, onEdit }) {
   const summary = useMemo(() => summarize(child), [child]);
+  const path = agePath(child.age);
 
   return (
     <div className="dashboard">
@@ -83,6 +90,8 @@ export function ChildOverview({ child, onStart, onResume, onOpenWords, onOpenHis
             <p className="eyebrow">Parcours de {child.name}</p>
             <h1>{situationTitle(summary)}</h1>
             <p>{situationCopy(summary, child.name)}</p>
+            <span className="path-chip">{path.label} · {path.minutes} min</span>
+            <button type="button" className="edit-profile" onClick={onEdit}>Modifier son profil</button>
           </div>
         </div>
         <div className="welcome-action">
@@ -346,6 +355,12 @@ export function FamilyDashboardStyles() {
       .profile-modal > p:not(.eyebrow) { margin:0;color:#71837C;font-size:14px;line-height:1.5; }
       .profile-modal label { display:grid;gap:5px;color:#61736C;font-size:12px;font-weight:900; }
       .profile-modal input,.profile-modal select { border:1px solid #DDE5E0;border-radius:13px;padding:12px 13px;color:#1D332C;background:#FBFCFA; }
+      .path-preview { display:grid;gap:2px;padding:12px 13px;border-radius:14px;background:#ECF6EF;border:1px solid #D8ECDF; }
+      .path-preview span { color:#2F7E5D;font-family:var(--font-head);font-weight:800;font-size:15px; }
+      .path-preview strong { color:#385A4D;font-size:12px; }
+      .path-preview small { color:#71847C;font-size:11px; }
+      .path-chip { display:inline-block;margin-top:8px;padding:5px 9px;border-radius:99px;background:rgba(255,255,255,.12);color:#D7EADF;font-size:10px;font-weight:900; }
+      .edit-profile { margin-left:7px;border:0;background:transparent;color:#CBE3D7;font-size:10px;font-weight:800;text-decoration:underline;cursor:pointer;padding:4px; }
       .profile-modal fieldset { border:0;padding:0;margin:0; }
       .profile-modal legend { color:#61736C;font-size:12px;font-weight:900;margin-bottom:7px; }
       .avatar-grid { display:flex;flex-wrap:wrap;gap:6px; }

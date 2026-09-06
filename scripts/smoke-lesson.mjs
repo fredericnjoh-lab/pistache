@@ -5,6 +5,8 @@ import { buildDailyLesson, scheduleQuietMiss, parentOneLiner, pickDinnerWords, r
 import {
   activeChild,
   addChild,
+  agePath,
+  defaultChildState,
   loadFamily,
   loadState,
   recordAttempt,
@@ -27,6 +29,15 @@ const lesson1 = buildDailyLesson(state);
 console.assert(lesson1.length > 0, "day1 lesson not empty");
 console.assert(lesson1.length <= 20, "day1 lesson capped");
 console.assert(lesson1.filter((x) => x.reason === "seed" || x.reason === "new").length >= 1, "has new/seed");
+
+// Trois rythmes adaptés à l'âge
+for (const [age, turns, maxNew] of [[4, 20, 2], [8, 24, 3], [11, 28, 4]]) {
+  const child = defaultChildState({ name: `Test ${age}`, age });
+  const ageLesson = buildDailyLesson(child);
+  console.assert(agePath(age).turns === turns, `age ${age}: pathway turns`);
+  console.assert(child.settings.maxNewPerDay === maxNew, `age ${age}: new word cap`);
+  console.assert(ageLesson.length === turns, `age ${age}: lesson length`);
+}
 
 for (let i = 0; i < 5; i++) {
   const item = lesson1[i];

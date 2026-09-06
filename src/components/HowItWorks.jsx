@@ -16,7 +16,7 @@ export const LOOP_STEPS = [
     n: 2,
     icon: "🔊",
     title: "Iel entend le mot",
-    text: "Deux fois, dans une des quatre langues. Ta voix si tu l’as enregistrée, sinon celle du téléphone.",
+    text: "Une ou deux fois selon son âge, dans une des quatre langues. Ta voix si tu l’as enregistrée, sinon celle du téléphone.",
   },
   {
     n: 3,
@@ -40,8 +40,8 @@ export const RULES = [
   },
   {
     icon: "2️⃣",
-    title: "2 mots neufs par jour",
-    text: "D’abord les ratés d’hier, puis les mots oubliés depuis 4 jours, et seulement ensuite 2 nouveautés. Jamais plus.",
+    title: "Un rythme qui grandit",
+    text: "2 nouveautés à 3–6 ans, 3 à 7–9 ans, 4 à 10–12 ans — toujours après les mots à consolider.",
   },
   {
     icon: "🍽️",
@@ -56,13 +56,13 @@ export function HowItWorks({ compact = false }) {
       <div className="how-principle">
         <p className="eyebrow">Le principe</p>
         <h2>
-          Un enfant de 3 ans ne lit pas.
+          Chaque âge apprend autrement.
           <br />
           Alors l’app parle, et l’écoute.
         </h2>
         <p className="how-lede">
-          Onze minutes par jour. Iel touche une image, entend le mot, le redit à voix haute.
-          L’app retient ce qui accroche et te dit quoi glisser au dîner.
+          De 3 à 12 ans, la séance passe progressivement de l’éveil oral à la lecture
+          accompagnée puis au rappel autonome. L’app retient ce qui accroche et adapte la suite.
         </p>
       </div>
 

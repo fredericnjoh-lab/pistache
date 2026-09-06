@@ -12,7 +12,7 @@ createRoot(document.getElementById("root")).render(
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
-      const swUrl = `${import.meta.env.BASE_URL}sw.js?v=3`;
+      const swUrl = `${import.meta.env.BASE_URL}sw.js?v=4`;
       const reg = await navigator.serviceWorker.register(swUrl);
 
       // Drop any leftover v1/v2 caches ASAP
@@ -20,7 +20,7 @@ if ("serviceWorker" in navigator) {
         const keys = await caches.keys();
         await Promise.all(
           keys
-            .filter((k) => k.startsWith("pistache-polyglot-") && k !== "pistache-polyglot-v3")
+            .filter((k) => (k.startsWith("pistache-polyglot-") || k.startsWith("lingopousse-")) && k !== "lingopousse-v4")
             .map((k) => caches.delete(k))
         );
       }

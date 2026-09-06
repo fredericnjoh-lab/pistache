@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { LANGUAGES, OBJECT_BY_ID, OBJECTS } from "../data/vocabulary.js";
-import { getProgressSeries, todayKey, wordStatus, STATUS_META } from "../lib/progress.js";
+import { agePath, getProgressSeries, todayKey, wordStatus, STATUS_META } from "../lib/progress.js";
 import { parentOneLiner } from "../lib/lessonEngine.js";
 import { LOOP_STEPS } from "./HowItWorks.jsx";
 
@@ -187,6 +187,7 @@ export function LessonPreview({ lesson }) {
 /** Onglet « Mots » : où en est chaque mot, langue par langue */
 export function WordStatusBoard({ state }) {
   const [langFilter, setLangFilter] = useState("all");
+  const path = agePath(state.age);
 
   const rows = useMemo(() => {
     return OBJECTS.map((obj) => ({
@@ -247,8 +248,9 @@ export function WordStatusBoard({ state }) {
 
       <p className="words-help">
         Chaque mot passe de <strong>à venir</strong> → <strong>en écoute</strong> →{" "}
-        <strong>en cours</strong> → <strong>acquis</strong> (3 réussites). Deux mots neufs
-        maximum par jour ; raté 3 jours de suite, il passe <strong>en pause</strong> et un
+        <strong>en cours</strong> → <strong>acquis</strong> (3 réussites). Pour son parcours{" "}
+        <strong>{path.label}</strong> : {path.newPerDay} mots neufs maximum par jour ;
+        raté 3 jours de suite, il passe <strong>en pause</strong> et un
         objet plus simple prend sa place.
       </p>
 

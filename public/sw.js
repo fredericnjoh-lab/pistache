@@ -1,5 +1,5 @@
 /* Network-first SW — updates show up; offline still works after first load */
-const CACHE = "pistache-polyglot-v3";
+const CACHE = "lingopousse-v4";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {

@@ -1,7 +1,7 @@
 {
-  "name": "Pistache",
-  "short_name": "Pistache",
-  "description": "Boucle vocale pour 3–6 ans — anglais, espagnol, mandarin, japonais.",
+  "name": "LingoPousse",
+  "short_name": "LingoPousse",
+  "description": "Parcours de langues adaptatifs pour les enfants de 3 à 12 ans.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#E8F4F0",
